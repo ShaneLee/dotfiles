@@ -40,3 +40,16 @@ noremap <Left> <Nop>
 noremap <Right> <Nop>
 
 noremap <C-s> :CtrlP<cr>
+
+""""""""""""""""""""""""""""""""""
+" Execute file based on file type.
+""""""""""""""""""""""""""""""""""
+noremap <F2> :call File_cmd()<cr>
+
+function File_cmd() 
+  if expand('%:e') ==? 'py'
+    exec ':! python %' 
+  elseif expand('%:e') ==? 'js' 
+    exec ':! node %'
+  endif
+endfunction
