@@ -52,4 +52,7 @@ function File_cmd()
   elseif expand('%:e') ==? 'js' 
     exec ':! node %'
   endif
+  elseif expand('%:e') ==? 'scala'
+    exec ':! scala %'
+  endif
 endfunction
