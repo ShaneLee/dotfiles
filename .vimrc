@@ -54,5 +54,7 @@ function File_cmd()
   endif
   elseif expand('%:e') ==? 'scala'
     exec ':! scala %'
+  elseif expand('%:e') ==? 'sh'
+    exec ':!./%'
   endif
 endfunction
