@@ -56,5 +56,7 @@ function File_cmd()
     exec ':! scala %'
   elseif expand('%:e') ==? 'sh'
     exec ':!./%'
+  elseif expand('%:e') ==? 'go'
+    exec ':! go run  %'
   endif
 endfunction
