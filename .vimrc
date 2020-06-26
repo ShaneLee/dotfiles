@@ -51,7 +51,6 @@ function File_cmd()
     exec ':! python %' 
   elseif expand('%:e') ==? 'js' 
     exec ':! node %'
-  endif
   elseif expand('%:e') ==? 'scala'
     exec ':! scala %'
   elseif expand('%:e') ==? 'sh'
