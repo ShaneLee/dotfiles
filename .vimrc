@@ -58,5 +58,7 @@ function File_cmd()
     exec ':!./%'
   elseif expand('%:e') ==? 'go'
     exec ':! go run  %'
+  elseif expand('%:e') ==? 'rs'
+    exec ':! cargo run  %'
   endif
 endfunction
