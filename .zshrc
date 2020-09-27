@@ -15,7 +15,7 @@ source $ZSH/oh-my-zsh.sh
 
 alias g='git'
 alias killn='killAll NotificationCenter'
-alias tutorial="cd '/Volumes/Leviathan/9. Progamming Tutorials' && ls"
+alias tutorial="cd '/Volumes/Leviathan/2. Progamming Tutorials' && ls"
 alias wunder="cd ~/dev/Python/wunderlist_automation && ls"
 alias pip='pip3'
 alias python='python3'
