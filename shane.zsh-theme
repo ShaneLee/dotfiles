@@ -1,1 +1,0 @@
-/Users/Shane/.oh-my-zsh/themes/shane.zsh-theme

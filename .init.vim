@@ -1,1 +1,4 @@
-/Users/Shane/.init.vim
+syntax on
+set nu
+
+Plug 'ludovicchabant/vim-gutentags'
