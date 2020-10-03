@@ -1,4 +1,1 @@
-syntax on
-set nu
-
-Plug 'ludovicchabant/vim-gutentags'
+/Users/Shane/.init.vim
