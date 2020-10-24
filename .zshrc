@@ -5,7 +5,11 @@ plugins=(git)
 plugins=(web-search)
 
 export JAVA_HOME=$(/usr/libexec/java_home -v11)
-export GOPATH="$HOME/dev/go"
+
+export GOROOT=$HOME/dev/Go
+export GOBIN=$GOROOT/bin
+export PATH=$PATH:$GOBIN
+
 export PATH="/anaconda3/bin":$PATH
 export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export PATH="$PATH:$HOME/bin"
@@ -19,6 +23,9 @@ alias tutorial="cd '/Volumes/Leviathan/2. Progamming Tutorials' && ls"
 alias wunder="cd ~/dev/Python/wunderlist_automation && ls"
 alias pip='pip3'
 alias python='python3'
+alias idea='python ~/dev/notion-bucket/notion-bucket.py'
+alias win='python ~/dev/notion-bucket/w.py'
+alias goal='python ~/dev/notion-bucket/g.py'
 
 alias ccolours='for i in {0..255}; do printf "\x1b[38;5;${i}mcolor%-5i\x1b[0m" $i ; if ! (( ($i + 1 ) % 8 )); then echo ; fi ; done'
 

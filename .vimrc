@@ -35,6 +35,9 @@ set cursorline
 set ts=2 sts=2 sw=2 expandtab 
 set timeoutlen=1000 ttimeoutlen=0
 
+" Map W to write 
+command W write
+
 """"""""""""""""""""""""""""""""""
 " Turn off arrow keys
 """"""""""""""""""""""""""""""""""
@@ -44,6 +47,12 @@ noremap <Left> <Nop>
 noremap <Right> <Nop>
 
 noremap <C-s> :CtrlP<cr>
+
+""""""""""""""""""""""""""""""""""
+" Insert mode remappings
+""""""""""""""""""""""""""""""""""
+
+inoremap jj <Esc>
 
 """"""""""""""""""""""""""""""""""
 " Execute file based on file type.
@@ -68,6 +77,8 @@ function File_cmd()
     exec ':! cargo run  %'
   elseif expand('%:e') ==? 'c'
     exec ':! gcc  % && ./a.out && rm a.out'
+  elseif expand('%:e') ==? 'ts'
+    exec ':! tsc % && node ' . expand('%:r') . '.js'
   endif
 endfunction
 
@@ -84,3 +95,6 @@ function Test_cmd()
     exec ':! go test'
   endif
 endfunction
+
+" Just testing this for now
+autocmd FileType java inoremap ;p private void test() 
