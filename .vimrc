@@ -35,6 +35,9 @@ set cursorline
 set ts=2 sts=2 sw=2 expandtab 
 set timeoutlen=1000 ttimeoutlen=0
 
+" Python PEP 8
+au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79 expandtab autoindent fileformat=unix
+
 " Map W to write 
 command W write
 
@@ -46,7 +49,6 @@ noremap <Down> <Nop>
 noremap <Left> <Nop>
 noremap <Right> <Nop>
 
-noremap <C-s> :CtrlP<cr>
 
 """"""""""""""""""""""""""""""""""
 " Insert mode remappings
