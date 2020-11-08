@@ -3,10 +3,6 @@ cd ~/bin/dotfiles
 
 rm tags
 
-mv ../../.zshrc . 
-mv ../../.vimrc . 
-mv ../../.tmux.conf . 
-mv ../../.init.vim . 
 cp ../../.on-my-zsh/themes/shane.zsh-theme . 
 
 git add . 
