@@ -6,10 +6,10 @@ plugins=(web-search)
 
 export JAVA_HOME=$(/usr/libexec/java_home -v11)
 
-export GOROOT=$HOME/dev/Go
-export GOBIN=$GOROOT/bin
-export PATH=$PATH:$GOBIN
+export GOPATH=$HOME/dev/Go
+export PATH=$PATH:$GOPATH/bin
 
+export PATH=/usr/local/bin:$PATH
 export PATH="/anaconda3/bin":$PATH
 export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export PATH="$PATH:$HOME/bin"
@@ -25,6 +25,11 @@ alias python='python3'
 alias idea='python ~/.bin/notion-bucket/notion-bucket.py'
 alias win='python ~/.bin/notion-bucket/w.py'
 alias goal='python ~/.bin/notion-bucket/g.py'
+
+alias officebluecon='BluetoothConnector --connect 30-21-93-32-AF-14 --notify'
+alias officebluedis='BluetoothConnector --disconnect 30-21-93-32-AF-14 --notify'
+alias jbluecon='BluetoothConnector --connect 74-5C-4B-6E-2D-25 --notify'
+alias jbluedis='BluetoothConnector --disconnect 74-5C-4B-6E-2D-25 --notify'
 
 alias ccolours='for i in {0..255}; do printf "\x1b[38;5;${i}mcolor%-5i\x1b[0m" $i ; if ! (( ($i + 1 ) % 8 )); then echo ; fi ; done'
 
