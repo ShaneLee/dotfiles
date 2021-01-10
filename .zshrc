@@ -30,12 +30,18 @@ alias officebluecon='BluetoothConnector --connect 30-21-93-32-AF-14 --notify'
 alias officebluedis='BluetoothConnector --disconnect 30-21-93-32-AF-14 --notify'
 alias jbluecon='BluetoothConnector --connect 74-5C-4B-6E-2D-25 --notify'
 alias jbluedis='BluetoothConnector --disconnect 74-5C-4B-6E-2D-25 --notify'
+alias finalcut="open '~/Applications/Final\ Cut\ Pro.app/Contents/MacOS/Final\ Cut\ Pro ; exit;'"
 
 alias ccolours='for i in {0..255}; do printf "\x1b[38;5;${i}mcolor%-5i\x1b[0m" $i ; if ! (( ($i + 1 ) % 8 )); then echo ; fi ; done'
+
+function mcdir {
+  command mkdir $1 && cd $1
+}
 
 # For tmux spacing
 export LC_ALL=en_US.UTF-8 
 export LANG=en_US.UTF-8
+
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="/Users/Shane/.sdkman"
