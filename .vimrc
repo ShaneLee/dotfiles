@@ -81,7 +81,9 @@ function File_cmd()
   elseif expand('%:e') ==? 'c'
     exec ':! gcc  % && ./a.out && rm a.out'
   elseif expand('%:e') ==? 'ts'
-    exec ':! tsc % && node ' . expand('%:r') . '.js'
+    exec ':! tsc -p tsconfig.json% && node ' . expand('%:r') . '.js'
+  elseif expand('%:e') ==? 'hs'
+    exec ':! ghc -o %:r % && ./%:r && rm %:r && rm %:r.hi && rm %:r.o'
   endif
 endfunction
 
