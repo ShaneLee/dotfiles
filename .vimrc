@@ -23,6 +23,8 @@ NeoBundle 'ludovicchabant/vim-gutentags'
 call neobundle#end()
 
 let g:ctrlp_custom_ignore = 'node_modules'
+set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*
+let mapleader=","
 
 " Required:
 filetype plugin indent off
@@ -34,10 +36,18 @@ set number
 set cursorline
 set ts=2 sts=2 sw=2 expandtab 
 set timeoutlen=1000 ttimeoutlen=0
+set smartcase
+set ignorecase
 "set lazyredraw
+
+" Set markdown width 
+au BufRead,BufNewFile *.md setlocal textwidth=80
 
 " Python PEP 8
 au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79 expandtab autoindent fileformat=unix
+
+nnoremap <leader>g :grep<space>
+nnoremap <leader>r :%s/
 
 " Map W to write 
 command W write
@@ -81,7 +91,7 @@ function File_cmd()
   elseif expand('%:e') ==? 'c'
     exec ':! gcc  % && ./a.out && rm a.out'
   elseif expand('%:e') ==? 'ts'
-    exec ':! tsc -p tsconfig.json% && node ' . expand('%:r') . '.js'
+    exec ':! tsc % && node ' . expand('%:r') . '.js && rm *.js'
   elseif expand('%:e') ==? 'hs'
     exec ':! ghc -o %:r % && ./%:r && rm %:r && rm %:r.hi && rm %:r.o'
   endif
@@ -100,6 +110,27 @@ function Test_cmd()
     exec ':! go test'
   endif
 endfunction
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" MULTIPURPOSE TAB KEY
+" Indent if we're at the beginning of a line. Else, do completion.
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+function! InsertTabWrapper()
+    let col = col('.') - 1
+    if !col
+        return "\<tab>"
+    endif
+
+    let char = getline('.')[col - 1]
+    if char =~ '\k'
+        " There's an identifier before the cursor, so complete the identifier.
+        return "\<c-p>"
+    else
+        return "\<tab>"
+    endif
+endfunction
+inoremap <expr> <tab> InsertTabWrapper()
+inoremap <s-tab> <c-n>
 
 " Just testing this for now
 autocmd FileType java inoremap ;p private void test() 

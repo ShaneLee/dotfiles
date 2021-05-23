@@ -1,5 +1,9 @@
 export ZSH="/Users/Shane/.oh-my-zsh"
 
+lounge_bluetooth='B5-EF-9E-83-BA-85'
+office_bluetooth='30-21-93-32-AF-14'
+jabra_bluetooth='74-5C-4B-6E-2D-25'
+
 ZSH_THEME="shane"
 plugins=(git)
 plugins=(web-search)
@@ -26,10 +30,12 @@ alias idea='python ~/.bin/notion-bucket/notion-bucket.py'
 alias win='python ~/.bin/notion-bucket/w.py'
 alias goal='python ~/.bin/notion-bucket/g.py'
 
-alias officebluecon='BluetoothConnector --connect 30-21-93-32-AF-14 --notify'
-alias officebluedis='BluetoothConnector --disconnect 30-21-93-32-AF-14 --notify'
-alias jbluecon='BluetoothConnector --connect 74-5C-4B-6E-2D-25 --notify'
-alias jbluedis='BluetoothConnector --disconnect 74-5C-4B-6E-2D-25 --notify'
+alias officebluecon="BluetoothConnector --connect ${office_bluetooth} --notify"
+alias officebluedis="BluetoothConnector --disconnect ${office_bluetooth} --notify"
+alias loungebluecon="BluetoothConnector --connect ${lounge_bluetooth} --notify"
+alias loungebluedis="BluetoothConnector --disconnect ${lounge_bluetooth} --notify"
+alias jbluecon="BluetoothConnector --connect ${jabra_bluetooth} --notify"
+alias jbluedis="BluetoothConnector --disconnect ${jabra_bluetooth} --notify"
 alias finalcut="open '~/Applications/Final\ Cut\ Pro.app/Contents/MacOS/Final\ Cut\ Pro ; exit;'"
 
 alias ccolours='for i in {0..255}; do printf "\x1b[38;5;${i}mcolor%-5i\x1b[0m" $i ; if ! (( ($i + 1 ) % 8 )); then echo ; fi ; done'
