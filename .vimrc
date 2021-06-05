@@ -38,7 +38,6 @@ set ts=2 sts=2 sw=2 expandtab
 set timeoutlen=1000 ttimeoutlen=0
 set smartcase
 set ignorecase
-"set lazyredraw
 
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
@@ -46,11 +45,27 @@ au BufRead,BufNewFile *.md setlocal textwidth=80
 " Python PEP 8
 au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79 expandtab autoindent fileformat=unix
 
+""""""""""""""""""""""""""""""""""
+" Use ripgrep
+""""""""""""""""""""""""""""""""""
+if executable('rg')
+  set grepprg=rg\ --vimgrep\ --hidden\ --glob
+endif
+
+""""""""""""""""""""""""""""""""""
+" Search files using vim grep
+""""""""""""""""""""""""""""""""""
+function SearchFiles(value)
+  vimgrep value `{ git ls-files & git ls-files --others }`
+  cw
+endfunction
+
+command -nargs=1 SearchF call SearchFiles(<f-args>)
+
 nnoremap <leader>g :grep<space>
 nnoremap <leader>r :%s/
-
-" Map W to write 
-command W write
+nnoremap <leader>f :SearchF<space>
+nnoremap <leader>c :cclose<cr>
 
 """"""""""""""""""""""""""""""""""
 " Turn off arrow keys
@@ -66,6 +81,15 @@ noremap <Right> <Nop>
 """"""""""""""""""""""""""""""""""
 
 inoremap jj <Esc>
+
+
+""""""""""""""""""""""""""""""""""
+" Ex mode remappings
+""""""""""""""""""""""""""""""""""
+:command WQ wq
+:command Wq wq
+:command W w
+:command Q q
 
 """"""""""""""""""""""""""""""""""
 " Execute file based on file type.
@@ -134,3 +158,11 @@ inoremap <s-tab> <c-n>
 
 " Just testing this for now
 autocmd FileType java inoremap ;p private void test() 
+
+" Markdown commands 
+autocmd FileType markdown inoremap <leader>1 #
+autocmd FileType markdown inoremap <leader>2 ##
+autocmd FileType markdown inoremap <leader>3 ###
+autocmd FileType markdown inoremap <leader>4 ####
+autocmd FileType markdown inoremap <leader>5 #####
+autocmd FileType markdown inoremap <leader>6 ######
