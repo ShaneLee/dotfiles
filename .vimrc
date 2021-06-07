@@ -23,7 +23,7 @@ NeoBundle 'ludovicchabant/vim-gutentags'
 call neobundle#end()
 
 let g:ctrlp_custom_ignore = 'node_modules'
-set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*
+set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*,*.pyc,*__init__*,*/__pycache__,tags
 let mapleader=","
 
 " Required:
@@ -66,6 +66,11 @@ nnoremap <leader>g :grep<space>
 nnoremap <leader>r :%s/
 nnoremap <leader>f :SearchF<space>
 nnoremap <leader>c :cclose<cr>
+nnoremap <leader><cr> :call File_name_cmd()<cr>
+nnoremap <leader>t :call Test_cmd()<cr>
+nnoremap <leader>[ :bp<return>
+nnoremap <leader>] :bn<return>
+
 
 """"""""""""""""""""""""""""""""""
 " Turn off arrow keys
@@ -74,7 +79,6 @@ noremap <Up> <Nop>
 noremap <Down> <Nop>
 noremap <Left> <Nop>
 noremap <Right> <Nop>
-
 
 """"""""""""""""""""""""""""""""""
 " Insert mode remappings
@@ -122,6 +126,16 @@ function File_cmd()
 endfunction
 
 """"""""""""""""""""""""""""""""""
+" Execute specific file
+""""""""""""""""""""""""""""""""""
+function File_name_cmd() 
+  execute ':w'
+  if expand('%:e') ==? 'py'
+    exec ':! python3 main.py' 
+  endif
+endfunction
+
+""""""""""""""""""""""""""""""""""
 " Test file based on file type.
 """"""""""""""""""""""""""""""""""
 noremap <F3> :call Test_cmd()<cr>
@@ -129,7 +143,7 @@ noremap <F3> :call Test_cmd()<cr>
 function Test_cmd() 
   execute ':w'
   if expand('%:e') ==? 'py'
-    exec ':! python %' 
+    exec ':! python -m unittest discover' 
   elseif expand('%:e') ==? 'go'
     exec ':! go test'
   endif
