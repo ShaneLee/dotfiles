@@ -14,16 +14,19 @@ call neobundle#begin(expand('~/.vim/bundle/'))
 " Required:
 NeoBundleFetch 'Shougo/neobundle.vim'
 
+NeoBundle 'tpope/vim-surround'
 NeoBundle 'fatih/vim-go'
 NeoBundle 'kien/ctrlp.vim'
 NeoBundle 'leafgarland/typescript-vim'
 NeoBundle 'peitalin/vim-jsx-typescript'
 NeoBundle 'ludovicchabant/vim-gutentags'
+NeoBundle 'akhaku/vim-java-unused-imports'
+"NeoBundle 'scrooloose/syntastic'
 
 call neobundle#end()
 
 let g:ctrlp_custom_ignore = 'node_modules'
-set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*,*.pyc,*__init__*,*/__pycache__,tags
+set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*,*.pyc,*__init__*,*/__pycache__,tags,*.o
 let mapleader=","
 
 " Required:
@@ -38,12 +41,36 @@ set ts=2 sts=2 sw=2 expandtab
 set timeoutlen=1000 ttimeoutlen=0
 set smartcase
 set ignorecase
+" If a file is changed outside of vim, automatically reload it without asking
+set autoread
 
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
 
 " Python PEP 8
 au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79 expandtab autoindent fileformat=unix
+
+""""""""""""""""""""""""""""""""""
+" Java settings
+""""""""""""""""""""""""""""""""""
+"let g:syntastic_java_checkers = ['checkstyle']
+"let g:syntastic_java_checkstyle_classpath = '~/.bin/java/checkstyle-8.44-SNAPSHOT.jar'
+"let g:syntastic_java_checkstyle_conf_file = '~/.bin/java/checkstyle.xml'
+"set statusline+=%#warningmsg#
+"set statusline+=%{SyntasticStatuslineFlag()}
+"set statusline+=%*
+"let g:syntastic_always_populate_loc_list = 1
+"let g:syntastic_auto_loc_list = 1
+"let g:syntastic_check_on_open = 1
+"let g:syntastic_check_on_wq = 0
+
+
+""""""""""""""""""""""""""""""""""
+" Java autocmds
+""""""""""""""""""""""""""""""""""
+autocmd FileType java noremap <leader>iu :UnusedImports<cr>
+autocmd FileType java noremap <leader>ir :UnusedImportsRemove<cr>
+autocmd FileType java noremap <leader>ih :UnusedImportsReset<cr>
 
 """"""""""""""""""""""""""""""""""
 " Use ripgrep
@@ -70,7 +97,8 @@ nnoremap <leader><cr> :call File_name_cmd()<cr>
 nnoremap <leader>t :call Test_cmd()<cr>
 nnoremap <leader>[ :bp<return>
 nnoremap <leader>] :bn<return>
-
+" Copy whole file to clipboard
+nnoremap <leader>ac :%y+<cr>
 
 """"""""""""""""""""""""""""""""""
 " Turn off arrow keys
