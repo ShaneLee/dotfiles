@@ -6,7 +6,7 @@ rm tags
 cp ../../.zshrc .
 cp ../../.vimrc .
 cp ../../.tmux.conf .
-cp ../../.on-my-zsh/themes/shane.zsh-theme . 
+cp ~/.on-my-zsh/themes/shane.zsh-theme . 
 
 git add . 
 git commit -m 'Cron update'
