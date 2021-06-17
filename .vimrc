@@ -50,6 +50,8 @@ au BufRead,BufNewFile *.md setlocal textwidth=80
 " Python PEP 8
 au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79 expandtab autoindent fileformat=unix
 
+cnoremap %% <C-R>=expand('%:h').'/'<cr>
+
 """"""""""""""""""""""""""""""""""
 " Java settings
 """"""""""""""""""""""""""""""""""
