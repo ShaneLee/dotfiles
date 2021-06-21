@@ -15,6 +15,7 @@ call neobundle#begin(expand('~/.vim/bundle/'))
 NeoBundleFetch 'Shougo/neobundle.vim'
 
 NeoBundle 'tpope/vim-surround'
+NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'fatih/vim-go'
 NeoBundle 'kien/ctrlp.vim'
 NeoBundle 'leafgarland/typescript-vim'
@@ -41,6 +42,7 @@ set ts=2 sts=2 sw=2 expandtab
 set timeoutlen=1000 ttimeoutlen=0
 set smartcase
 set ignorecase
+set complete-=i
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
 
@@ -103,6 +105,14 @@ nnoremap <leader>] :bn<return>
 nnoremap <leader>ac :%y+<cr>
 
 """"""""""""""""""""""""""""""""""
+" Easier split navigations 
+""""""""""""""""""""""""""""""""""
+nnoremap <C-J> <C-W><C-J>
+nnoremap <C-K> <C-W><C-K>
+nnoremap <C-L> <C-W><C-L>
+nnoremap <C-H> <C-W><C-H>
+
+""""""""""""""""""""""""""""""""""
 " Turn off arrow keys
 """"""""""""""""""""""""""""""""""
 noremap <Up> <Nop>
@@ -115,7 +125,6 @@ noremap <Right> <Nop>
 """"""""""""""""""""""""""""""""""
 
 inoremap jj <Esc>
-
 
 """"""""""""""""""""""""""""""""""
 " Ex mode remappings
@@ -202,6 +211,8 @@ inoremap <s-tab> <c-n>
 
 " Just testing this for now
 autocmd FileType java inoremap ;p private void test() 
+autocmd FileType java inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
+ 
 
 " Markdown commands 
 autocmd FileType markdown inoremap <leader>1 #
