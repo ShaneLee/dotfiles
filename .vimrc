@@ -72,11 +72,20 @@ cnoremap %% <C-R>=expand('%:h').'/'<cr>
 
 
 """"""""""""""""""""""""""""""""""
+" Java adds final to field
+""""""""""""""""""""""""""""""""""
+function! FinalField()
+  normal 0ea final
+  normal jj
+endfunction
+
+""""""""""""""""""""""""""""""""""
 " Java autocmds
 """"""""""""""""""""""""""""""""""
 autocmd FileType java noremap <leader>iu :UnusedImports<cr>
 autocmd FileType java noremap <leader>ir :UnusedImportsRemove<cr>
 autocmd FileType java noremap <leader>ih :UnusedImportsReset<cr>
+autocmd FileType java noremap <leader>a :call FinalField()<cr>
 
 """"""""""""""""""""""""""""""""""
 " Use ripgrep
