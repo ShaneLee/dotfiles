@@ -16,6 +16,7 @@ NeoBundleFetch 'Shougo/neobundle.vim'
 
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'tpope/vim-fugitive'
+NeoBundle 'tpope/vim-commentary'
 NeoBundle 'fatih/vim-go'
 NeoBundle 'kien/ctrlp.vim'
 NeoBundle 'leafgarland/typescript-vim'
