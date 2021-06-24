@@ -4,8 +4,6 @@ cd ~/bin/dotfiles
 rm tags
 
 cp ../../.zshrc .
-cp ../../.vimrc .
-cp ../../.tmux.conf .
 cp ~/.oh-my-zsh/themes/shane.zsh-theme . 
 
 git add . 

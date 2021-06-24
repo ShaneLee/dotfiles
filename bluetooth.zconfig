@@ -1,0 +1,10 @@
+lounge_bluetooth='B5-EF-9E-83-BA-85'
+office_bluetooth='30-21-93-32-AF-14'
+jabra_bluetooth='74-5C-4B-6E-2D-25'
+
+alias officebluecon="BluetoothConnector --connect ${office_bluetooth} --notify"
+alias officebluedis="BluetoothConnector --disconnect ${office_bluetooth} --notify"
+alias loungebluecon="BluetoothConnector --connect ${lounge_bluetooth} --notify"
+alias loungebluedis="BluetoothConnector --disconnect ${lounge_bluetooth} --notify"
+alias jbluecon="BluetoothConnector --connect ${jabra_bluetooth} --notify"
+alias jbluedis="BluetoothConnector --disconnect ${jabra_bluetooth} --notify"
