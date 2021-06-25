@@ -4,7 +4,7 @@ ZSH_THEME="shane"
 plugins=(git)
 plugins=(web-search)
 
-source $HOME/.bin/dotfiles/bluetooth.zconfig
+source $HOME/.bin/dotfiles/.bluetooth.zconfig
 
 export JAVA_HOME=$(/usr/libexec/java_home -v11)
 
