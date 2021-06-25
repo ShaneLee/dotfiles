@@ -49,7 +49,6 @@ set complete-=i
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
 
-
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
 augroup END
@@ -97,8 +96,7 @@ autocmd FileType java noremap <leader>a :call FinalField()<cr>
 """"""""""""""""""""""""""""""""""
 " Cucumber autocmds
 """"""""""""""""""""""""""""""""""
-autocmd FileType cucumber noremap <leader>r :!mvn test -Dtest=CucumberIT<cr>
-
+autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
 """"""""""""""""""""""""""""""""""
 " Use ripgrep
 """"""""""""""""""""""""""""""""""
@@ -143,9 +141,6 @@ noremap <Up> <Nop>
 noremap <Down> <Nop>
 noremap <Left> <Nop>
 noremap <Right> <Nop>
-
-""""""""""""""""""""""""""""""""""
-" Insert mode remappings
 """"""""""""""""""""""""""""""""""
 
 inoremap jj <Esc>
@@ -186,6 +181,13 @@ function File_cmd()
   elseif expand('%:e') ==? 'hs'
     exec ':! ghc -o %:r % && ./%:r && rm %:r && rm %:r.hi && rm %:r.o'
   endif
+endfunction
+
+""""""""""""""""""""""""""""""""""
+" Execute CucumberIT
+""""""""""""""""""""""""""""""""""
+function CucumberIT() 
+  execute '!mvn test -Dtest=CucumberIT'
 endfunction
 
 """"""""""""""""""""""""""""""""""
