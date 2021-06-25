@@ -1,7 +1,18 @@
 alias killn='killAll NotificationCenter'
 alias pip='pip3'
 alias python='python3'
+alias chrome="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
+alias mvn-dependency="mvn org.owasp:dependency-check-maven:check"
+alias less="less -FXS" # Make less output stay in terminal after quitting
 
 function mcdir {
   command mkdir $1 && cd $1
+}
+
+function rc() {
+    redis-cli -p $(docker ps | grep redis  | cut -d : -f 3 | cut -c -5)
+}
+
+function rci() {
+    redis-cli -h tmv -p 8082
 }

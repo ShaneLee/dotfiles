@@ -1,1 +1,3 @@
 alias g='git'
+alias gitgraph="git log --graph --oneline --decorate --all"
+alias gitaddprev="git add . && git commit --amend --no-edit"
