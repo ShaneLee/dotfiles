@@ -1,0 +1,7 @@
+alias killn='killAll NotificationCenter'
+alias pip='pip3'
+alias python='python3'
+
+function mcdir {
+  command mkdir $1 && cd $1
+}

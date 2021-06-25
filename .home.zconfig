@@ -1,0 +1,5 @@
+alias tutorial="cd '/Volumes/Leviathan/2. Progamming Tutorials' && ls"
+alias idea='python ~/.bin/notion-bucket/notion-bucket.py'
+alias win='python ~/.bin/notion-bucket/w.py'
+alias goal='python ~/.bin/notion-bucket/g.py'
+alias finalcut="open '~/Applications/Final\ Cut\ Pro.app/Contents/MacOS/Final\ Cut\ Pro ; exit;'"
