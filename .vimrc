@@ -51,7 +51,9 @@ set autoread
 
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
+au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=sh
 augroup END
+
 
 
 " Set markdown width 
