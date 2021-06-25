@@ -180,6 +180,8 @@ function File_cmd()
     exec ':! tsc % && node ' . expand('%:r') . '.js && rm *.js'
   elseif expand('%:e') ==? 'hs'
     exec ':! ghc -o %:r % && ./%:r && rm %:r && rm %:r.hi && rm %:r.o'
+  elseif expand('%:e') ==? 'java'
+    exec ':! mvn test -Dtest=' . expand('%:t:r') . 'Test'
   endif
 endfunction
 
