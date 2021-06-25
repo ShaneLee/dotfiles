@@ -5,6 +5,7 @@ plugins=(git)
 plugins=(web-search)
 
 source $HOME/.bin/dotfiles/.bluetooth.zconfig
+source $HOME/.bin/dotfiles/.work.zconfig
 
 export JAVA_HOME=$(/usr/libexec/java_home -v11)
 
