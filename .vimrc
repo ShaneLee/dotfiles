@@ -34,6 +34,7 @@ let mapleader=","
 
 " Required:
 filetype plugin indent off
+filetype plugin on
 
 NeoBundleCheck
 
@@ -47,6 +48,12 @@ set ignorecase
 set complete-=i
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
+
+
+augroup filetypedetect
+au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
+augroup END
+
 
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
@@ -86,6 +93,11 @@ autocmd FileType java noremap <leader>iu :UnusedImports<cr>
 autocmd FileType java noremap <leader>ir :UnusedImportsRemove<cr>
 autocmd FileType java noremap <leader>ih :UnusedImportsReset<cr>
 autocmd FileType java noremap <leader>a :call FinalField()<cr>
+
+""""""""""""""""""""""""""""""""""
+" Cucumber autocmds
+""""""""""""""""""""""""""""""""""
+autocmd FileType cucumber noremap <leader>r :!mvn test -Dtest=CucumberIT<cr>
 
 """"""""""""""""""""""""""""""""""
 " Use ripgrep
