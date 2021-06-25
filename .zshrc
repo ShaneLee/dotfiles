@@ -30,8 +30,6 @@ alias goal='python ~/.bin/notion-bucket/g.py'
 
 alias finalcut="open '~/Applications/Final\ Cut\ Pro.app/Contents/MacOS/Final\ Cut\ Pro ; exit;'"
 
-alias ccolours='for i in {0..255}; do printf "\x1b[38;5;${i}mcolor%-5i\x1b[0m" $i ; if ! (( ($i + 1 ) % 8 )); then echo ; fi ; done'
-
 function mcdir {
   command mkdir $1 && cd $1
 }
