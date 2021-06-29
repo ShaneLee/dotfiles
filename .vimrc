@@ -183,7 +183,7 @@ function File_cmd()
   elseif expand('%:e') ==? 'hs'
     exec ':! ghc -o %:r % && ./%:r && rm %:r && rm %:r.hi && rm %:r.o'
   elseif expand('%:e') ==? 'java'
-    exec ':! mvn test -Dtest=' . expand('%:t:r') . 'Test'
+    exec ':! mvn test -Dcheckstyle.skip=true -Dtest=' . expand('%:t:r') . 'Test'
   endif
 endfunction
 
@@ -191,7 +191,7 @@ endfunction
 " Execute CucumberIT
 """"""""""""""""""""""""""""""""""
 function CucumberIT() 
-  execute '!mvn test -Dtest=CucumberIT'
+  execute '!mvn test -Dcheckstyle.skip=true -Dtest=CucumberIT'
 endfunction
 
 """"""""""""""""""""""""""""""""""
