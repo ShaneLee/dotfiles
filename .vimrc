@@ -24,6 +24,7 @@ NeoBundle 'peitalin/vim-jsx-typescript'
 NeoBundle 'ludovicchabant/vim-gutentags'
 NeoBundle 'akhaku/vim-java-unused-imports'
 NeoBundle 'w0rp/ale'
+NeoBundle 'junegunn/goyo.vim'
 "NeoBundle 'scrooloose/syntastic'
 
 call neobundle#end()
