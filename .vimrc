@@ -56,6 +56,8 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=sh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 augroup END
 
+" Set java styles
+au FileType java setlocal ts=4 sts=4 sw=4 expandtab textwidth=100
 
 
 " Set markdown width 
