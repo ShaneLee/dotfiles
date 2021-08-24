@@ -25,7 +25,6 @@ NeoBundle 'ludovicchabant/vim-gutentags'
 NeoBundle 'akhaku/vim-java-unused-imports'
 NeoBundle 'w0rp/ale'
 NeoBundle 'junegunn/goyo.vim'
-"NeoBundle 'scrooloose/syntastic'
 
 call neobundle#end()
 
@@ -56,8 +55,6 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=sh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 augroup END
 
-" Set java styles
-au FileType java setlocal ts=4 sts=4 sw=4 expandtab textwidth=100
 
 
 " Set markdown width 
@@ -72,21 +69,6 @@ au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79
 cnoremap %% <C-R>=expand('%:h').'/'<cr>
 
 """"""""""""""""""""""""""""""""""
-" Java settings
-""""""""""""""""""""""""""""""""""
-"let g:syntastic_java_checkers = ['checkstyle']
-"let g:syntastic_java_checkstyle_classpath = '~/.bin/java/checkstyle-8.44-SNAPSHOT.jar'
-"let g:syntastic_java_checkstyle_conf_file = '~/.bin/java/checkstyle.xml'
-"set statusline+=%#warningmsg#
-"set statusline+=%{SyntasticStatuslineFlag()}
-"set statusline+=%*
-"let g:syntastic_always_populate_loc_list = 1
-"let g:syntastic_auto_loc_list = 1
-"let g:syntastic_check_on_open = 1
-"let g:syntastic_check_on_wq = 0
-
-
-""""""""""""""""""""""""""""""""""
 " Java adds final to field
 """"""""""""""""""""""""""""""""""
 function! FinalField()
@@ -97,10 +79,11 @@ endfunction
 """"""""""""""""""""""""""""""""""
 " Java autocmds
 """"""""""""""""""""""""""""""""""
-autocmd FileType java noremap <leader>iu :UnusedImports<cr>
-autocmd FileType java noremap <leader>ir :UnusedImportsRemove<cr>
-autocmd FileType java noremap <leader>ih :UnusedImportsReset<cr>
-autocmd FileType java noremap <leader>a :call FinalField()<cr>
+au FileType java setlocal ts=4 sts=4 sw=4 expandtab textwidth=100
+au FileType java noremap <leader>iu :UnusedImports<cr>
+au FileType java noremap <leader>ir :UnusedImportsRemove<cr>
+au FileType java noremap <leader>ih :UnusedImportsReset<cr>
+au FileType java noremap <leader>a :call FinalField()<cr>
 
 """"""""""""""""""""""""""""""""""
 " Cucumber autocmds
