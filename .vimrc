@@ -40,7 +40,7 @@ filetype plugin on
 NeoBundleCheck
 
 syntax on
-set number
+set number relativenumber
 set cursorline
 set ts=2 sts=2 sw=2 expandtab 
 set timeoutlen=1000 ttimeoutlen=0
