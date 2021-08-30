@@ -174,6 +174,8 @@ function File_cmd()
     exec ':! ghc -o %:r % && ./%:r && rm %:r && rm %:r.hi && rm %:r.o'
   elseif expand('%:e') ==? 'java'
     exec ':! mvn test -Dcheckstyle.skip=true -Dtest=' . expand('%:t:r') . 'Test'
+  elseif expand('%:e') ==? 'md'
+    exec ':! glow %'
   endif
 endfunction
 
