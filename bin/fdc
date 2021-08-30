@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Find the container ID of a docker container
+
+docker ps | grep $1 | cut -d : -f1 | cut -d ' ' -f1
