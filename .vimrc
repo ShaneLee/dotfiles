@@ -25,6 +25,8 @@ NeoBundle 'ludovicchabant/vim-gutentags'
 NeoBundle 'akhaku/vim-java-unused-imports'
 NeoBundle 'w0rp/ale'
 NeoBundle 'junegunn/goyo.vim'
+NeoBundle 'junegunn/fzf'
+NeoBundle 'junegunn/fzf.vim'
 
 call neobundle#end()
 
@@ -54,7 +56,6 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=sh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 augroup END
-
 
 
 " Set markdown width 
@@ -89,19 +90,12 @@ au FileType java noremap <leader>a :call FinalField()<cr>
 " Cucumber autocmds
 """"""""""""""""""""""""""""""""""
 autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
-""""""""""""""""""""""""""""""""""
-" Use ripgrep
-""""""""""""""""""""""""""""""""""
-if executable('rg')
-  set grepprg=rg\ --vimgrep\ --hidden\ --glob
-endif
 
 """"""""""""""""""""""""""""""""""
 " Search files using vim grep
 """"""""""""""""""""""""""""""""""
 function SearchFiles(value)
-  vimgrep value `{ git ls-files & git ls-files --others }`
-  cw
+  Rg value
 endfunction
 
 command -nargs=1 SearchF call SearchFiles(<f-args>)

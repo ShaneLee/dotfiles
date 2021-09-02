@@ -5,6 +5,11 @@ alias chrome="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 alias mvn-dependency="mvn org.owasp:dependency-check-maven:check"
 alias less="less -FXS" # Make less output stay in terminal after quitting
 
+if type rg &> /dev/null; then
+  export FZF_DEFAULT_COMMAND='rg --files'
+  export FZF_DEFAULT_OPTS='-m --height 50% --border'
+fi
+
 function mcdir {
   command mkdir $1 && cd $1
 }
