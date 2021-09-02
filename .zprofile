@@ -11,9 +11,3 @@ PATH="/Library/Frameworks/Python.framework/Versions/3.8/bin:${PATH}"
 export PATH
 
 export PATH="$HOME/.cargo/bin:$PATH"
-
-#BluetoothConnector --connect '30-21-93-32-AF-14' --notify &
-
-#if [ -z "$TMUX" ]; then
-#    tmux attach -t default || tmux new -s default
-#fi
