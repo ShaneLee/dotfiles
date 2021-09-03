@@ -94,6 +94,7 @@ autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
 nnoremap <leader>g :grep<space>
 nnoremap <leader>s :%s/
 nnoremap <leader>f :Rg<space>
+nnoremap <leader>w :Rg <C-R><C-W><cr>
 nnoremap <leader>c :cclose<cr>
 nnoremap <leader><cr> :call File_name_cmd()<cr>
 nnoremap <leader>r :call File_cmd()<cr>
