@@ -91,18 +91,9 @@ au FileType java noremap <leader>a :call FinalField()<cr>
 """"""""""""""""""""""""""""""""""
 autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
 
-""""""""""""""""""""""""""""""""""
-" Search files using vim grep
-""""""""""""""""""""""""""""""""""
-function SearchFiles(value)
-  Rg value
-endfunction
-
-command -nargs=1 SearchF call SearchFiles(<f-args>)
-
 nnoremap <leader>g :grep<space>
 nnoremap <leader>s :%s/
-nnoremap <leader>f :SearchF<space>
+nnoremap <leader>f :Rg<space>
 nnoremap <leader>c :cclose<cr>
 nnoremap <leader><cr> :call File_name_cmd()<cr>
 nnoremap <leader>r :call File_cmd()<cr>
