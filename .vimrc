@@ -94,6 +94,7 @@ autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
 nnoremap <leader>g :grep<space>
 nnoremap <leader>s :%s/
 nnoremap <leader>f :Rg<space>
+nnoremap <leader>w :Rg <C-R><C-W><cr>
 nnoremap <leader>c :cclose<cr>
 nnoremap <leader><cr> :call File_name_cmd()<cr>
 nnoremap <leader>r :call File_cmd()<cr>
@@ -152,6 +153,8 @@ function File_cmd()
   elseif expand('%:e') ==? 'rs'
     exec ':! cargo run  %'
   elseif expand('%:e') ==? 'c'
+    exec ':! gcc  % && ./a.out && rm a.out'
+  elseif expand('%:e') ==? 'tcl'
     exec ':! gcc  % && ./a.out && rm a.out'
   elseif expand('%:e') ==? 'ts'
     exec ':! tsc % && node ' . expand('%:r') . '.js && rm *.js'
