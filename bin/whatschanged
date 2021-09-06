@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+git status --porcelain | awk '{print $2}'
