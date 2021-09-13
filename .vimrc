@@ -171,7 +171,7 @@ endfunction
 " Execute CucumberIT
 """"""""""""""""""""""""""""""""""
 function CucumberIT() 
-  execute'!mvn test -Dcheckstyle.skip=true -Denforcer.skip=true -Ddependency-check.skip=true -Dtest=CucumberIT'
+  execute'!mvn failsafe:integration-test -Dtest=CucumberIT'
 endfunction
 
 """"""""""""""""""""""""""""""""""
