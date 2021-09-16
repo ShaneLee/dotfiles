@@ -3,3 +3,4 @@ alias idea='python ~/.bin/notion-bucket/notion-bucket.py'
 alias win='python ~/.bin/notion-bucket/w.py'
 alias goal='python ~/.bin/notion-bucket/g.py'
 alias finalcut="open '~/Applications/Final\ Cut\ Pro.app/Contents/MacOS/Final\ Cut\ Pro ; exit;'"
+alias ideas="open 'https://www.notion.so/Ideas-9fecdf5db830493f9bb0d278d2b305fa?p=41952b8d57054987aa48b5c45f3eca3e'"
