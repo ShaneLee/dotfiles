@@ -70,7 +70,7 @@ au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79
 cnoremap %% <C-R>=expand('%:h').'/'<cr>
 
 " Reformat entire file
-nnoremap <leader>l ggVGgq
+nnoremap <leader>l mqggVGgq'q
 
 """"""""""""""""""""""""""""""""""
 " Java adds final to field
