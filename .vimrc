@@ -149,6 +149,8 @@ function File_cmd()
     exec ':! scala %'
   elseif expand('%:e') ==? 'sh'
     exec ':! chmod +x % && ./%'
+  elseif expand('%:e') ==? ''
+    exec ':! chmod +x % && ./%'
   elseif expand('%:e') ==? 'cpp'
     exec ':! make % && ./%'
   elseif expand('%:e') ==? 'go'
