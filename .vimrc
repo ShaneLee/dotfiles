@@ -104,6 +104,7 @@ nnoremap <leader>r :call File_cmd()<cr>
 nnoremap <leader>t :call Test_cmd()<cr>
 nnoremap <leader>[ :bp<return>
 nnoremap <leader>] :bn<return>
+nnoremap <BS><BS> :bd<return>
 " Copy whole file to clipboard
 nnoremap <leader>ac :%y+<cr>
 
