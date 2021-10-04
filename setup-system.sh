@@ -4,7 +4,6 @@ install_homebrew() {
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 }
 
-
 install_neobundle() {
   curl https://raw.githubusercontent.com/Shougo/neobundle.vim/master/bin/install.sh > install.sh
   sh ./install.sh
@@ -23,6 +22,7 @@ install_with_brew() {
   brew install ctags 
   brew install bluetoothconnector 
   brew install glow 
+  brew install jupyter
 }
 
 install_aws_cli() {
@@ -30,7 +30,6 @@ install_aws_cli() {
   sudo installer -pkg AWSCLIV2.pkg -target /
   rm AWSCLIV2.pkg
 }
-
 
 install_homebrew
 install_neobundle
