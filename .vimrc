@@ -50,7 +50,6 @@ set ignorecase
 set complete-=i
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
-set spell spelllang=en_gb
 
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
@@ -61,6 +60,8 @@ augroup END
 
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
+" Set spelling for markdown
+au FileType markdown set spell spelllang=en_gb
 "
 " Set yaml indenting
 au FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
@@ -106,6 +107,7 @@ nnoremap <leader>t :call Test_cmd()<cr>
 nnoremap <leader>[ :bp<return>
 nnoremap <leader>] :bn<return>
 nnoremap <BS><BS> :bd<return>
+nnoremap <leader>ts :set spell! spelllang=en_gb<cr>
 " Copy whole file to clipboard
 nnoremap <leader>ac :%y+<cr>
 
