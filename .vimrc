@@ -50,6 +50,7 @@ set ignorecase
 set complete-=i
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
+set spell spelllang=en_gb
 
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
