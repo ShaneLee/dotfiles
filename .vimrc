@@ -228,6 +228,7 @@ endfunction
 inoremap <expr> <tab> InsertTabWrapper()
 inoremap <s-tab> <c-n>
 nnoremap <tab> :bp<CR>
+nnoremap <s-tab> :bn<CR>
 
 " Just testing this for now
 autocmd FileType java inoremap ;p private void test() 
