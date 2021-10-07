@@ -55,11 +55,13 @@ augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=sh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
+au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
 augroup END
 
 
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
+au BufRead,BufNewFile *.cmd setlocal textwidth=104
 " Set spelling for markdown
 au FileType markdown set spell spelllang=en_gb
 "
