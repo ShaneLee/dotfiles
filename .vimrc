@@ -175,6 +175,8 @@ function File_cmd()
     exec ':! mvn test -Dcheckstyle.skip=true -Dtest=' . expand('%:t:r') . 'Test'
   elseif expand('%:e') ==? 'md'
     exec ':! glow %'
+  elseif expand('%:e') ==? 'cmd'
+    exec ':! glow %'
   endif
 endfunction
 
