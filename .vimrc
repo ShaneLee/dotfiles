@@ -110,8 +110,13 @@ nnoremap <leader>[ :bp<return>
 nnoremap <leader>] :bn<return>
 nnoremap <BS><BS> :bd<return>
 nnoremap <leader>ts :set spell! spelllang=en_gb<cr>
+
+
 " Copy whole file to clipboard
 nnoremap <leader>ac :%y+<cr>
+
+" Format JSON
+nnoremap <leader>jq :%!jq .<cr>
 
 """"""""""""""""""""""""""""""""""
 " Easier split navigations 
