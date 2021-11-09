@@ -48,6 +48,7 @@ set timeoutlen=1000 ttimeoutlen=0
 set smartcase
 set ignorecase
 set complete-=i
+set splitright
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
 
