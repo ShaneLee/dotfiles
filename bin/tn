@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Switch to a TMUX session by name
+[ -n "$1" ] && tmux switch -t $1 || echo "No session"
