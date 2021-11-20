@@ -10,6 +10,13 @@ install_neobundle() {
   rm install.sh
 }
 
+install_diff_so_fancy() {
+  brew install diff-so-fancy
+  git config --global core.pager "diff-so-fancy | less --tabs=4 -RFX"
+  git config --global interactive.diffFilter "diff-so-fancy --patch"
+}
+
+
 install_with_brew() {
   brew install node
   brew install tmux
