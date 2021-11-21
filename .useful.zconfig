@@ -21,3 +21,7 @@ function rc() {
 function rci() {
     redis-cli -h tmv -p 8082
 }
+
+function newdesign() {
+  cp ~/.bin/dotfiles/drawio-template.drawio $1
+}
