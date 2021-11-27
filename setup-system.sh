@@ -30,6 +30,7 @@ install_with_brew() {
   brew install bluetoothconnector 
   brew install glow 
   brew install jupyter
+  brew install coreutils
 }
 
 install_aws_cli() {
