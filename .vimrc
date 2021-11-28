@@ -104,8 +104,6 @@ nnoremap <leader>f :Rg<space>
 nnoremap <leader>w :Rg <C-R><C-W><cr>
 nnoremap <leader>c :cclose<cr>
 nnoremap <leader><cr> :call File_name_cmd()<cr>
-nnoremap <leader>r :call File_cmd()<cr>
-nnoremap <leader>t :call Test_cmd()<cr>
 nnoremap <leader>[ :bp<return>
 nnoremap <leader>] :bn<return>
 nnoremap <BS><BS> :bd<return>
@@ -120,6 +118,10 @@ if has('ide')
   map <leader>d :action Debug <cr>
   map <leader>b :action ToggleLineBreakpoint <cr>
   map <leader>l :action Run <cr>
+  map <leader>gl :action GoToLastTab <cr>
+else
+  nnoremap <leader>r :call File_cmd()<cr>
+  nnoremap <leader>t :call Test_cmd()<cr>
 endif
 
 
