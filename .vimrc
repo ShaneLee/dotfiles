@@ -98,7 +98,6 @@ au FileType java noremap <leader>a :call FinalField()<cr>
 " Cucumber autocmds
 """"""""""""""""""""""""""""""""""
 autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
-
 nnoremap <leader>g :grep<space>
 nnoremap <leader>s :%s/
 nnoremap <leader>f :Rg<space>
@@ -111,6 +110,17 @@ nnoremap <leader>[ :bp<return>
 nnoremap <leader>] :bn<return>
 nnoremap <BS><BS> :bd<return>
 nnoremap <leader>ts :set spell! spelllang=en_gb<cr>
+nnoremap <leader>rr :source ~/.vimrc <cr>
+
+if has('ide')
+  "Specific remappings for idea vim
+  nnoremap <BS><BS> <Nop>
+  map <leader>r :action Run <cr>
+  map <leader>t :action RunClass <cr>
+  map <leader>d :action Debug <cr>
+  map <leader>b :action ToggleLineBreakpoint <cr>
+  map <leader>l :action Run <cr>
+endif
 
 
 " Copy whole file to clipboard
