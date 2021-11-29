@@ -119,6 +119,7 @@ if has('ide')
   map <leader>b :action ToggleLineBreakpoint <cr>
   map <leader>l :action Run <cr>
   map <leader>gl :action GoToLastTab <cr>
+  inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
 else
   nnoremap <leader>r :call File_cmd()<cr>
   nnoremap <leader>t :call Test_cmd()<cr>
@@ -252,8 +253,6 @@ inoremap <s-tab> <c-n>
 nnoremap <tab> :bp<CR>
 nnoremap <s-tab> :bn<CR>
 
-" Just testing this for now
-autocmd FileType java inoremap ;p private void test() 
 autocmd FileType java inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
  
 
