@@ -108,7 +108,8 @@ nnoremap <leader>[ :bp<return>
 nnoremap <leader>] :bn<return>
 nnoremap <BS><BS> :bd<return>
 nnoremap <leader>ts :set spell! spelllang=en_gb<cr>
-nnoremap <leader>rr :source ~/.vimrc <cr>
+nnoremap <leader>r :call File_cmd()<cr>
+nnoremap <leader>t :call Test_cmd()<cr>
 
 if has('ide')
   "Specific remappings for idea vim
@@ -121,8 +122,7 @@ if has('ide')
   map <leader>gl :action GoToLastTab <cr>
   inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
 else
-  nnoremap <leader>r :call File_cmd()<cr>
-  nnoremap <leader>t :call Test_cmd()<cr>
+  nnoremap <leader>rr :source ~/.vimrc <cr>
 endif
 
 
