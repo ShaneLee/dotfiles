@@ -120,6 +120,7 @@ if has('ide')
   map <leader>b :action ToggleLineBreakpoint <cr>
   map <leader>l :action Run <cr>
   map <leader>gl :action GoToLastTab <cr>
+  map <leader>gi :action GotoImplementation <cr>
   inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
 else
   nnoremap <leader>rr :source ~/.vimrc <cr>
