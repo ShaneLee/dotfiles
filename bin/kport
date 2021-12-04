@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Kill the process at the given port
+kill -9 $(lsof -ti:$1)
