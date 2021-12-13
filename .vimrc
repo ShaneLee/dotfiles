@@ -110,6 +110,9 @@ nnoremap <BS><BS> :bd<return>
 nnoremap <leader>r :call File_cmd()<cr>
 nnoremap <leader>t :call Test_cmd()<cr>
 
+" Delete cucumber column (takes a count)
+let @c = 'F|df|i|€ýajl'
+
 if has('ide')
   "Specific remappings for idea vim
   nnoremap <BS><BS> <Nop>
