@@ -100,7 +100,6 @@ au FileType java noremap <leader>a :call FinalField()<cr>
 autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
 nnoremap <leader>g :grep<space>
 nnoremap <leader>s :%s/
-nnoremap <leader>f :Rg<space>
 nnoremap <leader>w :Rg <C-R><C-W><cr>
 vnoremap <leader>w y :Rg <C-R>0<cr>
 nnoremap <leader>c :cclose<cr>
@@ -119,12 +118,14 @@ if has('ide')
   map <leader>d :action Debug <cr>
   map <leader>b :action ToggleLineBreakpoint <cr>
   map <leader>l :action Run <cr>
+  map <leader>f :action FindInPath <cr>
   map <leader>gl :action GoToLastTab <cr>
   map <leader>gi :action GotoImplementation <cr>
   inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
 else
   nnoremap <leader>rr :source ~/.vimrc <cr>
   nnoremap <leader>ts :set spell! spelllang=en_gb<cr>
+  nnoremap <leader>f :Rg<space>
 endif
 
 
