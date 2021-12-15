@@ -19,8 +19,8 @@
 [pull]
 	rebase = false
 [core]
-	excludesfiles = ~/.bin/dotfiles/.gitignore_global
-	pager = diff-so-fancy | less --tabs=4 -RFX
+	pager = diff-so-fancy | less --tabs=5 -RFX
+	excludesfile = ~/.bin/dotfiles/.gitignore_global
 [credential]
 	helper = 
 	helper = /usr/local/share/gcm-core/git-credential-manager-core
