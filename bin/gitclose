@@ -1,0 +1,11 @@
+#!/bin/bash 
+
+set -e
+
+START_BRANCH=$(git branch --show)
+
+function close_branch() {
+  git checkout develop && git pull && git branch -d $1
+}
+
+[[ START_BRANCH != "develop" || START_BRANCH != "master" ]] && close_branch $START_BRANCH || echo "Can't close protected branch"
