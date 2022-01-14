@@ -34,7 +34,7 @@ install_with_brew() {
   brew install koekeishiya/formulae/yabai
   brew services start yabai
   brew install koekeishiya/formulae/skhd
-  brew services start skhb
+  brew services start skhd
 }
 
 install_aws_cli() {
