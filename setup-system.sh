@@ -31,10 +31,6 @@ install_with_brew() {
   brew install glow 
   brew install jupyter
   brew install coreutils
-  brew install koekeishiya/formulae/yabai
-  brew services start yabai
-  brew install koekeishiya/formulae/skhd
-  brew services start skhd
 }
 
 install_aws_cli() {
