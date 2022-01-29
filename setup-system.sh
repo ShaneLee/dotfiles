@@ -31,6 +31,7 @@ install_with_brew() {
   brew install glow 
   brew install jupyter
   brew install coreutils
+  brew install --cask amethyst
 }
 
 install_aws_cli() {
