@@ -16,3 +16,10 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 defaults write com.googlecode.iterm2.plist PrefsCustomFolder -string "~/.bin/dotfiles/iterm2"
 # Tell iTerm2 to use the custom preferences in the directory
 defaults write com.googlecode.iterm2.plist LoadPrefsFromCustomFolder -bool true
+
+# Spotlight
+# =========
+
+# Disable Spotlight indexing for any volume that gets mounted and has not yet
+# been indexed before.
+sudo defaults write /.Spotlight-V100/VolumeConfiguration Exclusions -array "/Volumes"
