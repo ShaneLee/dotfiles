@@ -35,6 +35,9 @@ let g:ctrlp_custom_ignore = 'node_modules'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*,*.pyc,*__init__*,*/__pycache__,tags,*.o
 let mapleader=","
 
+let g:goyo_width = 120
+
+
 " Required:
 filetype plugin indent off
 filetype plugin on
