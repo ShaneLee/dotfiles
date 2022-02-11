@@ -1,4 +1,5 @@
 proxy-ci.config.json
+*.swp
 
 # Compiled class file
 *.class
