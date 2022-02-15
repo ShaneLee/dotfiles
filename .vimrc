@@ -82,6 +82,15 @@ cnoremap %% <C-R>=expand('%:h').'/'<cr>
 nnoremap <leader>l mqggVGgq'q
 
 """"""""""""""""""""""""""""""""""
+" Angular opens html template
+""""""""""""""""""""""""""""""""""
+function! OpenTemplate()
+  :call search('templateUrl')
+  :call search('html')
+  normal gf
+endfunction
+
+""""""""""""""""""""""""""""""""""
 " Java adds final to field
 """"""""""""""""""""""""""""""""""
 function! FinalField()
@@ -102,6 +111,13 @@ au FileType java noremap <leader>a :call FinalField()<cr>
 " Cucumber autocmds
 """"""""""""""""""""""""""""""""""
 autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
+ 
+""""""""""""""""""""""""""""""""""
+" Typescript autocmds
+""""""""""""""""""""""""""""""""""
+au FileType typescript nnoremap <leader>tt :call OpenTemplate()<cr>
+
+
 nnoremap <leader>g :grep<space>
 nnoremap <leader>s :%s/
 nnoremap <leader>w :Rg <C-R><C-W><cr>
