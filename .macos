@@ -27,4 +27,4 @@ sudo defaults write /.Spotlight-V100/VolumeConfiguration Exclusions -array "/Vol
 
 # Turn off red updates alert in system preferences
 defaults write com.apple.systempreferences AttentionPrefBundleIDs 0
-killall dock
+killall Dock
