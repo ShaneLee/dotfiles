@@ -119,6 +119,7 @@ au FileType typescript nnoremap <leader>tt :call OpenTemplate()<cr>
 
 
 nnoremap <leader>g :grep<space>
+nnoremap <leader>gg :Goyo<cr>
 nnoremap <leader>s :%s/
 nnoremap <leader>w :Rg <C-R><C-W><cr>
 vnoremap <leader>w y :Rg <C-R>0<cr>
