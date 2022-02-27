@@ -50,6 +50,7 @@ set cursorline
 set ts=2 sts=2 sw=2 expandtab 
 set timeoutlen=1000 ttimeoutlen=0
 set smartcase
+set smartindent
 set ignorecase
 set complete-=i
 set splitright
