@@ -106,7 +106,7 @@ au FileType java setlocal ts=4 sts=4 sw=4 expandtab textwidth=100
 au FileType java noremap <leader>iu :UnusedImports<cr>
 au FileType java noremap <leader>ir :UnusedImportsRemove<cr>
 au FileType java noremap <leader>ih :UnusedImportsReset<cr>
-au FileType java noremap <leader>a :call FinalField()<cr>
+au FileType java noremap <leader>fa :call FinalField()<cr>
 
 """"""""""""""""""""""""""""""""""
 " Cucumber autocmds
