@@ -31,6 +31,7 @@ BREW_INSTALLS=(
   python
   jupyter
   coreutils
+  git-credential-manager
 )
 
 BREW_TAPS=(
