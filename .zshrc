@@ -1,4 +1,4 @@
-export ZSH=$HOME/.oh-my-zsh
+export ZSH=$HOME/.bin/.oh-my-zsh
 
 ZSH_THEME="shane"
 plugins=(git)
