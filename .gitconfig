@@ -26,6 +26,7 @@
 [credential]
 	helper = 
 	helper = /usr/local/share/gcm-core/git-credential-manager-core
+	helper = !/opt/homebrew/Cellar/openjdk/17.0.2/libexec/openjdk.jdk/Contents/Home/bin/java -Ddebug=false -Djava.net.useSystemProxies=true -jar /opt/homebrew/Cellar/git-credential-manager/2.0.4_2/libexec/git-credential-manager-2.0.4.jar
 [credential "https://dev.azure.com"]
 	useHttpPath = true
 [interactive]
