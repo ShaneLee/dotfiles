@@ -22,7 +22,7 @@ defaults write com.googlecode.iterm2.plist LoadPrefsFromCustomFolder -bool true
 
 # Disable Spotlight indexing for any volume that gets mounted and has not yet
 # been indexed before.
-sudo defaults write /.Spotlight-V100/VolumeConfiguration Exclusions -array "/Volumes"
+# sudo defaults write /.Spotlight-V100/VolumeConfiguration Exclusions -array "/Volumes"
 
 
 # Turn off red updates alert in system preferences
