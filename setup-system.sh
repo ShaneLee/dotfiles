@@ -3,7 +3,6 @@
 CASK_INSTALLS=(
   NetNewsWire
   google-chrome
-  microsoft-outlook
   spotify
   docker
   vlc
