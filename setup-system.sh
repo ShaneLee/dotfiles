@@ -9,7 +9,7 @@ CASK_INSTALLS=(
   tor-browser
   notion
   obs
-  adoptopenjdk8
+  adoptopenjdk11
   amethyst
   intellij-idea-ce
   dropbox
