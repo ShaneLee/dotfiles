@@ -27,4 +27,11 @@ sudo defaults write /.Spotlight-V100/VolumeConfiguration Exclusions -array "/Vol
 
 # Turn off red updates alert in system preferences
 defaults write com.apple.systempreferences AttentionPrefBundleIDs 0
+
+# Remove recents from dock
+defaults write com.apple.dock show-recents -bool FALSE
+
+# Turn on right click
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool true
+defaults write com.apple.driver.AppleBluetoothMultitouch.mouse MouseButtonMode TwoButton
 killall Dock
