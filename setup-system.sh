@@ -13,6 +13,7 @@ CASK_INSTALLS=(
   adoptopenjdk8
   amethyst
   intellij-idea-ce
+  dropbox
   iterm2
 )
 
