@@ -15,6 +15,7 @@ CASK_INSTALLS=(
   intellij-idea-ce
   dropbox
   iterm2
+  shiftit
 )
 
 BREW_INSTALLS=(
