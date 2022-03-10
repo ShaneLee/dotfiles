@@ -15,6 +15,7 @@ CASK_INSTALLS=(
   dropbox
   iterm2
   shiftit
+  android-file-transfer
 )
 
 BREW_INSTALLS=(
