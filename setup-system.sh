@@ -16,6 +16,7 @@ CASK_INSTALLS=(
   iterm2
   shiftit
   android-file-transfer
+  calibre
 )
 
 BREW_INSTALLS=(
