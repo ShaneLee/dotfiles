@@ -40,6 +40,10 @@ BREW_TAPS=(
   adoptopenjdk/openjdk
 )
 
+install_tmux_plugin_manager() {
+  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+}
+
 install_homebrew() {
   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/shane/.zprofile
@@ -104,11 +108,12 @@ install_aliases() {
   touch ~/.bin/dotfiles/.work.zconfig
 }
 
-#install_homebrew
-#install_with_brew
+install_homebrew
+install_with_brew
 install_oh_my_zsh
-#install_with_cask
+install_with_cask
 install_aliases
-#install_neobundle
-# install_aws_cli
+install_neobundle
+install_tmux_plugin_manager
+#install_aws_cli
 
