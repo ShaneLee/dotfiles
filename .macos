@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
+COMPUTER_NAME="achilles"
+
 ## Close any open System Preferences panes, to prevent them from overriding
 ## settings we’re about to change
 osascript -e 'tell application "System Preferences" to quit'
+
+sudo scutil --set ComputerName "${COMPUTER_NAME}"
+sudo scutil --set HostName "${COMPUTER_NAME}"
+sudo scutil --set LocalHostName "${COMPUTER_NAME}"
+sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "${COMPUTER_NAME}"
 
 ## Ask for the administrator password upfront
 sudo -v
