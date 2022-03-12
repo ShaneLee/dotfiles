@@ -21,6 +21,8 @@ export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export PATH="$HOME/.bin/dotfiles/bin:$PATH"
 export PATH="$PATH:$HOME/bin"
 
+ZSH_COMPDUMP="~/.cache/zsh/zcompdump"
+
 export LESSSHISTFILE="-"
 
 KEYTIMEOUT=1
