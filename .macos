@@ -31,6 +31,15 @@ defaults write com.apple.systempreferences AttentionPrefBundleIDs 0
 # Remove recents from dock
 defaults write com.apple.dock show-recents -bool FALSE
 
+# Hot corners
+# Bottom left screen corner → Launchpad
+defaults write com.apple.dock wvous-bl-corner -int 11
+defaults write com.apple.dock wvous-bl-modifier -int 0
+
+# Bottom right screen corner → turn off quick note
+defaults write com.apple.dock wvous-br-corner -int 1
+defaults write com.apple.dock wvous-br-modifier -int 1048576
+
 # Turn on right click
 defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool true
 defaults write com.apple.driver.AppleBluetoothMultitouch.mouse MouseButtonMode TwoButton
