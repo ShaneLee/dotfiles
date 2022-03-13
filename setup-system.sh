@@ -21,6 +21,8 @@ CASK_INSTALLS=(
 
 BREW_INSTALLS=(
   node
+  yarn
+  npm
   wget
   tmux
   Java11
