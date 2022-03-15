@@ -17,6 +17,7 @@ CASK_INSTALLS=(
   shiftit
   android-file-transfer
   calibre
+  anki
 )
 
 BREW_INSTALLS=(
