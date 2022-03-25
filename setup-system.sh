@@ -18,6 +18,7 @@ CASK_INSTALLS=(
   android-file-transfer
   calibre
   anki
+  min
 )
 
 BREW_INSTALLS=(
