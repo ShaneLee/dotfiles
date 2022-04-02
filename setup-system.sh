@@ -22,7 +22,7 @@ CASK_INSTALLS=(
 )
 
 BREW_INSTALLS=(
-  node
+  nvm
   yarn
   npm
   wget
@@ -73,6 +73,10 @@ install_oh_my_zsh() {
 
 }
 
+install_lts_node() {
+  nvm install --lts
+}
+
 brewInstall() { if brew ls --versions "$1"; then brew upgrade "$1"; else brew install "$1"; fi }
 
 brewCaskInstall() { if brew ls --cask --versions "$1"; then brew upgrade --cask "$1"; else brew install --cask "$1"; fi }
@@ -119,5 +123,6 @@ install_with_cask
 install_aliases
 install_neobundle
 install_tmux_plugin_manager
+install_lts_node
 #install_aws_cli
 
