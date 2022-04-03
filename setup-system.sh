@@ -116,6 +116,12 @@ install_aliases() {
   touch ~/.bin/dotfiles/.work.zconfig
 }
 
+install_todos() {
+  cd ~/.bin
+  git clone https://github.com/ShaneLee/todos.git
+  cd -
+}
+
 install_homebrew
 install_with_brew
 install_oh_my_zsh
@@ -124,5 +130,6 @@ install_aliases
 install_neobundle
 install_tmux_plugin_manager
 install_lts_node
+install_todos
 #install_aws_cli
 
