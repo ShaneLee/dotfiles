@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
+touch ~/Desktop/todos
 cat ~/Desktop/todos
