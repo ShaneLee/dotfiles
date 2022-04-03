@@ -26,6 +26,7 @@ BREW_INSTALLS=(
   yarn
   npm
   wget
+  rg
   tmux
   Java11
   mvn
