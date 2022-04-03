@@ -5051,8 +5051,6 @@
 			</dict>
 			<key>Send Code When Idle</key>
 			<false/>
-			<key>Shortcut</key>
-			<string>8</string>
 			<key>Silence Bell</key>
 			<true/>
 			<key>Sync Title</key>
