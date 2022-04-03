@@ -118,7 +118,7 @@ install_aliases() {
 
 install_todos() {
   cd ~/.bin
-  git clone https://github.com/ShaneLee/todos.git
+  git clone git@github.com:ShaneLee/todos.git
   cd -
 }
 
