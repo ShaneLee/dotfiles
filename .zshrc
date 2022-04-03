@@ -9,6 +9,7 @@ source $HOME/.bin/dotfiles/.work.zconfig
 source $HOME/.bin/dotfiles/.home.zconfig
 source $HOME/.bin/dotfiles/.useful.zconfig
 source $HOME/.bin/dotfiles/.git.zconfig
+source $HOME/.bin/todos/.todos.zconfig
 
 export JAVA_HOME=$(/usr/libexec/java_home -v11)
 

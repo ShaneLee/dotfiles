@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-touch ~/.bin/todos/todos
-cat ~/.bin/todos/todos

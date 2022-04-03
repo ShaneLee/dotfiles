@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-cd ~/.bin/todos
-vi ~/.bin/todos/todos
-git add todos
-git commit -m 'Update todos'
-git push
-cd -
