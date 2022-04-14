@@ -10,6 +10,10 @@ if type rg &> /dev/null; then
   export FZF_DEFAULT_OPTS='-m --height 50% --border'
 fi
 
+function gitthis {
+  open "https://github.com/ShaneLee/`basename $PWD`"
+}
+
 function mcdir {
   command mkdir $1 && cd $1
 }
