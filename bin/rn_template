@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# find the sorg note template
+echo `basename $PWD`"_template.md"
