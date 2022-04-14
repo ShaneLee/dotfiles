@@ -132,6 +132,8 @@ nnoremap <BS><BS> :bd<return>
 nnoremap <leader>r :call File_cmd()<cr>
 nnoremap <leader>t :call Test_cmd()<cr>
 noremap Q <Nop>
+" Open the note template in the current buffer
+nnoremap <leader>ot :r `rn_template`<cr> :execute "normal kdd"<cr>
 
 " Delete cucumber column (takes a count)
 let @c = 'F|df|i|€ýajl'
