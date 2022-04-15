@@ -68,8 +68,6 @@ augroup END
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
 au BufRead,BufNewFile *.cmd setlocal textwidth=104
-" Set spelling for markdown
-au FileType markdown set spell spelllang=en_gb
 "
 " Set yaml indenting
 au FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
