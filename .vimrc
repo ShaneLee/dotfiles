@@ -105,6 +105,8 @@ au FileType java noremap <leader>iu :UnusedImports<cr>
 au FileType java noremap <leader>ir :UnusedImportsRemove<cr>
 au FileType java noremap <leader>ih :UnusedImportsReset<cr>
 au FileType java noremap <leader>fa :call FinalField()<cr>
+au FileType java inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
+au FileType java inoremap <leader>csid <esc>:call read !csid
 
 """"""""""""""""""""""""""""""""""
 " Cucumber autocmds
@@ -281,9 +283,6 @@ inoremap <expr> <tab> InsertTabWrapper()
 inoremap <s-tab> <c-n>
 nnoremap <tab> :bp<CR>
 nnoremap <s-tab> :bn<CR>
-
-autocmd FileType java inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
- 
 
 " Markdown commands 
 autocmd FileType markdown inoremap <leader>1 #
