@@ -22,6 +22,7 @@ export PATH="/anaconda3/bin":$PATH
 export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export PATH="$HOME/.bin/dotfiles/bin:$PATH"
 export PATH="$PATH:$HOME/bin"
+export PATH="$PATH:$HOME/wbin"
 
 ZSH_COMPDUMP="~/.cache/zsh/zcompdump"
 
