@@ -43,7 +43,7 @@ BREW_INSTALLS=(
 
 PIP_INSTALLS=(
   pylint
-  autopep8
+  black
 )
 
 BREW_TAPS=(

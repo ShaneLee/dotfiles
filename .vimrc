@@ -110,6 +110,14 @@ au FileType java inoremap <leader>cc private static final Clock CLOCK = Clock.fi
 au FileType java inoremap <leader>csid <esc>:call read !csid
 
 """"""""""""""""""""""""""""""""""
+" Python autocmds
+""""""""""""""""""""""""""""""""""
+
+" Format the code
+au FileType python setlocal formatprg=black\ -q\ -
+au FileType python nnoremap <leader>l ggVGgq<C-o><C-o>
+
+""""""""""""""""""""""""""""""""""
 " Cucumber autocmds
 """"""""""""""""""""""""""""""""""
 autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
