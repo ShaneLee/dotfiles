@@ -55,7 +55,6 @@ set complete-=i
 set splitright
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
-set visualbell
 set noerrorbells
 
 augroup filetypedetect
