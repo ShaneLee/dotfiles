@@ -12,7 +12,16 @@ source $HOME/.bin/dotfiles/.git.zconfig
 source $HOME/.bin/todos/.todos.zconfig
 source $HOME/.bin/sorg/.sorg.config
 
-export JAVA_HOME=$(/usr/libexec/java_home -v11)
+export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
+export JAVA_11_HOME=$(/usr/libexec/java_home -v11)
+export JAVA_17_HOME=$(/usr/libexec/java_home -v17)
+
+alias java8='export JAVA_HOME=$JAVA_8_HOME'
+alias java11='export JAVA_HOME=$JAVA_11_HOME'
+alias java17='export JAVA_HOME=$JAVA_17_HOME'
+
+# default to Java 11
+java11
 
 export GOPATH=$HOME/dev/Go
 export PATH=$PATH:$GOPATH/bin
