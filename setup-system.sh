@@ -41,6 +41,11 @@ BREW_INSTALLS=(
   git-credential-manager
 )
 
+PIP_INSTALLS=(
+  pylint
+  autopep8
+)
+
 BREW_TAPS=(
   adoptopenjdk/openjdk
 )
@@ -100,6 +105,12 @@ install_with_brew() {
   done
 }
 
+install_with_pip() {
+  for APP in ${PIP_INSTALLS[@]}; do
+    pip install --upgrade $APP
+  done
+}
+
 
 install_aws_cli() {
   curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
@@ -132,5 +143,6 @@ install_neobundle
 install_tmux_plugin_manager
 install_lts_node
 install_todos
+install_with_pip
 #install_aws_cli
 
