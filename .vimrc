@@ -91,6 +91,15 @@ function! OpenTemplate()
 endfunction
 
 """"""""""""""""""""""""""""""""""
+" Angular opens spec
+""""""""""""""""""""""""""""""""""
+function! OpenAngularSpec()
+  let new_file = substitute(expand("%"), '\.ts', '\.spec\.ts', '')
+  let new_file = substitute(expand("%"), '\.html', '\.spec\.ts', '')
+  exec ':e ' new_file
+endfunction
+
+""""""""""""""""""""""""""""""""""
 " Java adds final to field
 """"""""""""""""""""""""""""""""""
 function! FinalField()
@@ -126,6 +135,7 @@ autocmd FileType cucumber noremap <leader>r :call CucumberIT()<cr>
 " Typescript autocmds
 """"""""""""""""""""""""""""""""""
 au FileType typescript nnoremap <leader>tt :call OpenTemplate()<cr>
+au FileType typescript nnoremap <leader>gt :call OpenAngularSpec()<cr>
 
 
 nnoremap <leader>g :grep<space>
