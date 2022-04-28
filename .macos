@@ -53,4 +53,9 @@ defaults write -globalDomain "com.apple.sound.uiaudio.enabled" -int 0
 # Turn on right click
 defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool true
 defaults write com.apple.driver.AppleBluetoothMultitouch.mouse MouseButtonMode TwoButton
+
+# Disable Crash Report
+launchctl unload -w /System/Library/LaunchAgents/com.apple.ReportCrash.plist
+launchctl unload -w /System/Library/LaunchDaemons/com.apple.ReportCrash.Root.plist
+
 killall Dock
