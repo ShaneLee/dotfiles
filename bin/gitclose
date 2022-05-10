@@ -5,7 +5,9 @@ set -e
 START_BRANCH=$(git branch --show)
 
 function close_branch() {
-  git checkout develop && git pull && git branch -d $1
+  git checkout $1 && git pull && git branch -d $2
 }
 
-[[ START_BRANCH != "develop" || START_BRANCH != "master" ]] && close_branch $START_BRANCH || echo "Can't close protected branch"
+DEFAULT_BRANCH="${1:-develop}"
+
+[[ START_BRANCH != "develop" || START_BRANCH != "master" ]] && close_branch $DEFAULT_BRANCH $START_BRANCH || echo "Can't close protected branch"
