@@ -76,6 +76,9 @@ au FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
 " Python PEP 8
 au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79 expandtab autoindent fileformat=unix
 
+" Set xml indenting
+autocmd FileType xml setlocal shiftwidth=2 softtabstop=2 expandtab
+
 cnoremap %% <C-R>=expand('%:h').'/'<cr>
 
 " Reformat entire file
