@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+import sys
+import json
+import requests
+from bs4 import BeautifulSoup as bs
+
+URL = ''
+try:
+    URL = sys.argv[1]
+except:
+    print('You need to pass the URL as an argument')
+
+page = requests.get(URL)
+
+soup = bs(page.text, 'html.parser')
+
+page_data = [ json.loads(x.string) for x in soup.find_all('script',
+type='application/ld+json') ]
+
+for x in page_data:
+    try:
+        print(x['articleBody'])
+    except KeyError:
+        pass
+
+

@@ -9,3 +9,4 @@ alias notion_ideas="open 'https://www.notion.so/Ideas-9fecdf5db830493f9bb0d278d2
 alias gdl='cd ~/Downloads'
 alias gdf='cd ~/.bin/dotfiles'
 alias gdt='cd ~/Desktop'
+alias gquotes='cd ~/dev/quotes'
