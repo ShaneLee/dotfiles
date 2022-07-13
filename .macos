@@ -58,4 +58,10 @@ defaults write com.apple.driver.AppleBluetoothMultitouch.mouse MouseButtonMode T
 launchctl unload -w /System/Library/LaunchAgents/com.apple.ReportCrash.plist
 launchctl unload -w /System/Library/LaunchDaemons/com.apple.ReportCrash.Root.plist
 
+
+# Turn off disk not ejected properly notifications
+defaults write /Library/Preferences/SystemConfiguration/com.apple.DiskArbitration.diskarbitrationd.plist DADisableEjectNotification -bool YES
+pkill diskarbitrationd
+
+
 killall Dock
