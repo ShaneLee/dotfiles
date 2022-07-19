@@ -277,7 +277,7 @@ noremap <F3> :call Test_cmd()<cr>
 function Test_cmd() 
   execute ':w'
   if expand('%:e') ==? 'py'
-    exec ':! python -m unittest discover' 
+    exec ':! pytest tests'
   elseif expand('%:e') ==? 'go'
     exec ':! go test'
   endif
