@@ -65,6 +65,7 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
 augroup END
 
+autocmd FileType html,xml set omnifunc=htmlcomplete#CompleteTags
 
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
