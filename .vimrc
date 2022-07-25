@@ -63,6 +63,7 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=sh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.config :setlocal filetype=sh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
+au! BufReadPre,BufReadPost,BufRead,BufNewFile *.j2  setfiletype yaml
 augroup END
 
 autocmd FileType html,xml set omnifunc=htmlcomplete#CompleteTags
