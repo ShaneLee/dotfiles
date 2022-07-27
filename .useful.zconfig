@@ -4,6 +4,7 @@ alias python='python3'
 alias chrome="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 alias mvn-dependency="mvn org.owasp:dependency-check-maven:check"
 alias less="less -FXS" # Make less output stay in terminal after quitting
+alias ta=tmux a
 
 if type rg &> /dev/null; then
   export FZF_DEFAULT_COMMAND='rg --files'
