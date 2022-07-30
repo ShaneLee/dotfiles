@@ -23,6 +23,11 @@ alias java17='export JAVA_HOME=$JAVA_17_HOME'
 # default to Java 11
 java11
 
+bindkey '^P' up-line-or-search
+bindkey '^N' down-line-or-search
+bindkey '^F' forward-word
+bindkey '^B' backward-word
+
 export GOPATH=$HOME/dev/Go
 export PATH=$PATH:$GOPATH/bin
 
