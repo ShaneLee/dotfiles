@@ -10,3 +10,6 @@ alias gdl='cd ~/Downloads'
 alias gdf='cd ~/.bin/dotfiles'
 alias gdt='cd ~/Desktop'
 alias gquotes='cd ~/dev/quotes'
+
+# Default to Java17 
+java17
