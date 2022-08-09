@@ -56,6 +56,7 @@ set splitright
 " If a file is changed outside of vim, automatically reload it without asking
 set autoread
 set noerrorbells
+set shell=/bin/zsh
 
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
