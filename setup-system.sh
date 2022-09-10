@@ -19,6 +19,7 @@ CASK_INSTALLS=(
   calibre
   anki
   min
+  anaconda
 )
 
 BREW_INSTALLS=(

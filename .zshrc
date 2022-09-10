@@ -29,7 +29,7 @@ export GOPATH=$HOME/dev/Go
 export PATH=$PATH:$GOPATH/bin
 
 export PATH=/usr/local/bin:$PATH
-export PATH="/anaconda3/bin":$PATH
+export PATH="/opt/homebrew/anaconda3/bin:$PATH"
 export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export PATH="$HOME/.bin/dotfiles/bin:$PATH"
 export PATH="$PATH:$HOME/bin"
