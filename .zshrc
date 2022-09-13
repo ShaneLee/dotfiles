@@ -4,6 +4,7 @@ ZSH_THEME="shane"
 plugins=(git)
 plugins=(web-search)
 
+export CONDA_AUTO_ACTIVATE_BASE=false
 export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
 export JAVA_11_HOME=$(/usr/libexec/java_home -v11)
 export JAVA_17_HOME=$(/usr/libexec/java_home -v17)
@@ -29,7 +30,6 @@ export GOPATH=$HOME/dev/Go
 export PATH=$PATH:$GOPATH/bin
 
 export PATH=/usr/local/bin:$PATH
-export PATH="/opt/homebrew/anaconda3/bin:$PATH"
 export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export PATH="$HOME/.bin/dotfiles/bin:$PATH"
 export PATH="$PATH:$HOME/bin"
@@ -53,3 +53,7 @@ export SDKMAN_DIR="/Users/Shane/.sdkman"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# Initialise conda, but because this is slow
+# do it in a subshell and prevent it logging anything
+(conda_init &) > /dev/null 2>&1
