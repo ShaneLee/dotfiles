@@ -19,14 +19,6 @@ function mcdir {
   command mkdir $1 && cd $1
 }
 
-function rc() {
-    redis-cli -p $(docker ps | grep redis  | cut -d : -f 3 | cut -c -5)
-}
-
-function rci() {
-    redis-cli -h tmv -p 8082
-}
-
 function newdesign() {
   cp ~/.bin/dotfiles/drawio-template.drawio $1
 }
