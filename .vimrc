@@ -60,7 +60,7 @@ set shell=/bin/zsh
 
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
-au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=sh
+au! BufReadPre,BufReadPost,BufRead,BufNewFile *.zconfig :setlocal filetype=zsh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.config :setlocal filetype=sh
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
