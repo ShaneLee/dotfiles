@@ -69,6 +69,10 @@ augroup END
 
 autocmd FileType html,xml set omnifunc=htmlcomplete#CompleteTags
 
+" Templates
+"
+autocmd BufNewFile *.sh 0r ~/.bin/dotfiles/skeletons/bash.sh
+
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
 au BufRead,BufNewFile *.cmd setlocal textwidth=104
