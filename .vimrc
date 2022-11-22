@@ -72,6 +72,7 @@ autocmd FileType html,xml set omnifunc=htmlcomplete#CompleteTags
 " Templates
 "
 autocmd BufNewFile *.sh 0r ~/.bin/dotfiles/skeletons/bash.sh
+autocmd BufNewFile *.py 0r ~/.bin/dotfiles/skeletons/python.py
 
 " Set markdown width 
 au BufRead,BufNewFile *.md setlocal textwidth=80
