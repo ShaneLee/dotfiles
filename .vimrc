@@ -238,7 +238,7 @@ function File_cmd()
   elseif expand('%:e') ==? ''
     exec ':! chmod +x % && ./%'
   elseif expand('%:e') ==? 'cpp'
-    exec ':! make % && ./%'
+    exec ':! g++  % && ./a.out && rm a.out'
   elseif expand('%:e') ==? 'go'
     exec ':! go run  %'
   elseif expand('%:e') ==? 'rs'
