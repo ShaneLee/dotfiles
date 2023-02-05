@@ -21,8 +21,8 @@ source $HOME/.bin/dotfiles/.git.zconfig
 source $HOME/.bin/todos/.todos.zconfig
 source $HOME/.bin/sorg/.sorg.config
 
-bindkey '^P' up-line-or-search
-bindkey '^N' down-line-or-search
+bindkey '^P' history-beginning-search-backward
+bindkey '^N' history-beginning-search-forward
 bindkey '^F' forward-word
 bindkey '^B' backward-word
 
