@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# This script tells me how many days I have left to live,
+# assuming I live to the current average age of a UK male.
+
+days_between_dates() {
+  start_date="$1"
+  end_date="$2"
+  
+  # Convert dates to seconds since epoch
+  start_seconds=$(date -j -f "%Y-%m-%d" "$start_date" "+%s")
+  end_seconds=$(date -j -f "%Y-%m-%d" "$end_date" "+%s")
+
+  # Calculate the difference in seconds
+  seconds_diff=$((end_seconds - start_seconds))
+
+  # Calculate the number of days
+  days_diff=$((seconds_diff / 86400))
+
+  echo "$days_diff"
+}
+
+days_between_dates $(date "+%F") "2075-03-28"
