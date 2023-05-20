@@ -26,6 +26,8 @@ NeoBundle 'w0rp/ale'
 NeoBundle 'junegunn/goyo.vim'
 NeoBundle 'junegunn/fzf'
 NeoBundle 'junegunn/fzf.vim'
+NeoBundle 'lervag/vimtex'
+
 
 call neobundle#end()
 
@@ -36,6 +38,7 @@ let mapleader=","
 
 let g:goyo_width = 120
 
+let g:vimtex_view_method='skim'
 
 " Required:
 filetype plugin indent off
