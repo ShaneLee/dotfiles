@@ -39,6 +39,7 @@ BREW_INSTALLS=(
   python
   jupyter
   coreutils
+  ffmpeg
   git-credential-manager
 )
 
