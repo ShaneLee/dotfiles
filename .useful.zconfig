@@ -28,9 +28,53 @@ function ff() {
   vi $(fzf --multi | xargs)
 }
 
+IMPORT_MOTO_DIR="/Volumes/Colossus/6_Motorbike/"
+
+# Generate the name for the current import
+function generate_import_folder() {
+  [[ -z $1 ]] && echo "Must provide description with no spaces" && return
+  local description=$1
+  date_prefix="`date "+%F"`_"
+  mkdir -pv "$IMPORT_MOTO_DIR$date_prefix$description"
+  echo "$IMPORT_MOTO_DIR$date_prefix$description"
+}
+
+# Import everything from GoPro and ZoomH1
+function import_everything() {
+  echo "importing from GoPro"
+  import_gopro $1 &
+  echo "importing from Zoom"
+  import_zoom $1 &
+}
+
+function import_gopro() {
+  folder=$(generate_import_folder $1)
+}
+
+function import_zoom() {
+  folder=$(generate_import_folder $1)
+  mv -v /Volumes/ZOOM/STEREO/FOLDER01/*.MP3 $folder
+  compress_all $folder
+}
+
+# Compresses all the files in a directory
+function compress_all() {
+  [[ ! -z $1 ]] && cd $1 || echo "No input directory provided using the current directory"
+  for audio_file in $(ls | grep MP3); do 
+    echo "Compressing $audio_file"
+    ffmpeg -i $audio_file -af acompressor=threshold=-12dB:ratio=9:attack=200:release=1000 "compressed_$audio_file"
+  done
+  [[ ! -z $1 ]] && cd -
+}
+
 # Adds a prefix to all files in a directory
 function prefix_files() {
-  for f in * ; do mv -- "$f" "$1$f" ; done
+  for f in * ; do prefix_file $1 ; done
+}
+
+# Adds a prefix to a single file
+function prefix_file() {
+  mv -- "$f" "$1$f" 
 }
 
 function conda_init() {
