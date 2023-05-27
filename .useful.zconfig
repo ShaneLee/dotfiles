@@ -62,7 +62,8 @@ function compress_all() {
   [[ ! -z $1 ]] && cd $1 || echo "No input directory provided using the current directory"
   for audio_file in $(ls | grep MP3); do 
     echo "Compressing $audio_file"
-    ffmpeg -i $audio_file -af acompressor=threshold=-12dB:ratio=9:attack=200:release=1000 "compressed_$audio_file"
+    output=$(echo "$1_compressored_$audio_file" | sed 's/ZOOM//g')
+    ffmpeg -i $audio_file -af acompressor=threshold=-12dB:ratio=9:attack=200:release=1000 $output
   done
   [[ ! -z $1 ]] && cd -
 }
