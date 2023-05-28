@@ -34,7 +34,7 @@ IMPORT_MOTO_DIR="/Volumes/Colossus/6_Motorbike/"
 function generate_import_folder() {
   [[ -z $1 ]] && echo "Must provide description with no spaces" && return
   local description=$1
-  date_prefix="`date "+%F"`_"
+  date_prefix="$(date "+%F" | sed 's/-//g')-"
   mkdir -pv "$IMPORT_MOTO_DIR$date_prefix$description"
   echo "$IMPORT_MOTO_DIR$date_prefix$description"
 }
