@@ -41,6 +41,7 @@ BREW_INSTALLS=(
   coreutils
   ffmpeg
   git-credential-manager
+  yq
 )
 
 PIP_INSTALLS=(
