@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -e
+
+app_name=$1
+dry_run=${2:-false}
+
+declare -a locations=(
+  /Applications
+  ~/Library/Application\ Support
+  ~/Library/Preferences
+  ~/Library/Caches
+  /Library/Application\ Support
+  /Library/Preferences
+  /Library/Caches
+)
+
+find "${locations[@]}" -maxdepth 1 -iname "*${app_name}*" -prune | \
+  while read file_to_rm ; do
+    echo "Confirm rm \"${file_to_rm}\": y/n/c"
+    while true ; do
+      read -u 2 confirm_resp
+      if [ "$confirm_resp" = 'y' ] && [ "$dry_run" != 'true' ] ; then
+        rm -rf "$file_to_rm"
+      fi
+      if [ "$confirm_resp" = 'y' ] || [ "$confirm_resp" = 'n' ] ; then
+        break
+      elif [ "$confirm_resp" = 'c' ] ; then
+        exit 1
+      fi
+    done
+  done
