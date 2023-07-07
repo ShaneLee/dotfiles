@@ -37,6 +37,7 @@ function generate_import_folder() {
   local description=$1
   date_prefix="$(date "+%F" | sed 's/-//g')-"
   mkdir -pv "$IMPORT_MOTO_DIR$date_prefix$description"
+  open "$IMPORT_MOTO_DIR$date_prefix$description"
 }
 
 # Import everything from GoPro and ZoomH1
