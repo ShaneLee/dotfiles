@@ -30,6 +30,7 @@ function ff() {
 }
 
 IMPORT_MOTO_DIR="/Volumes/Colossus/6_Motorbike/"
+IMPORT_G7XII_DIR="/Volumes/Colossus/7-pictures/cameras/canon-g7x-mkii/"
 
 # Generate the name for the current import
 function generate_import_folder() {
@@ -40,12 +41,22 @@ function generate_import_folder() {
   open "$IMPORT_MOTO_DIR$date_prefix$description"
 }
 
+function generate_canon_import_folder() {
+  [[ -z $1 ]] && echo "Must provide description with no spaces" && return
+  local description=$1
+  date_prefix="$(date "+%F" | sed 's/-//g')-"
+  mkdir -pv "$IMPORT_G7XII_DIR$date_prefix$description"
+  open "$IMPORT_G7XII_DIR$date_prefix$description"
+}
+
 # Import everything from GoPro and ZoomH1
 function import_everything() {
   echo "importing from GoPro"
   import_gopro $1 &
   echo "importing from Zoom"
   import_zoom $1 &
+  echo "importing from Canon G7x Mkii"
+  import_canon_g7xii $1 &
 }
 
 function import_gopro() {
@@ -56,6 +67,14 @@ function import_zoom() {
   folder=$(generate_import_folder $1)
   mv -v /Volumes/ZOOM/STEREO/FOLDER01/*.MP3 $folder
   compress_all $folder
+}
+
+function import_canon_g7xii() {
+  folder=$(generate_canon_import_folder $1)
+  mv -v /Volumes/CANON_DC/DCIM/114___07/*.* $folder
+  cd $folder
+  rename_shoot $1
+  cd - 
 }
 
 # Compresses all the files in a directory
@@ -88,6 +107,11 @@ function prefix_file() {
 # Rename all files and directories in the current dir
 function rename_convention() {
    rename 's/\. /-/' * && rename 's/ /-/g' * && rename 's/_/-/g' * && rename --force 'y/A-Z/a-z/' *
+}
+
+function rename_shoot() {
+   prefix_files $1
+   rename_convention
 }
 
 
