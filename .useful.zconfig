@@ -17,6 +17,16 @@ function gitthis {
   open "https://github.com/ShaneLee/`basename $PWD`"
 }
 
+function ggu() {
+  if [[ -z $1 ]] then
+    uuidgen | tr '[:upper:]' '[:lower:]' | tr -d '\n'
+  else
+    for ((i=1;i<=$1;i++)); do
+      uuidgen | tr '[:upper:]' '[:lower:]'
+    done
+  fi
+}
+
 function mcdir {
   command mkdir $1 && cd $1
 }
