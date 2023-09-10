@@ -92,9 +92,11 @@ function import_zoom() {
 
 function import_canon_g7xii() {
   folder=$(generate_canon_import_folder $1)
-  mv -v /Volumes/CANON_DC/DCIM/114___07/*.* $folder
+  mv -v /Volumes/CANON_DC/DCIM/*/*.CR2 $folder
+  mv -v /Volumes/CANON_DC/DCIM/*/*.MP4 $folder
   cd $folder
-  rename_shoot $1
+  #rename_shoot $1
+  echo $1
   cd - 
 }
 
