@@ -63,5 +63,8 @@ launchctl unload -w /System/Library/LaunchDaemons/com.apple.ReportCrash.Root.pli
 defaults write /Library/Preferences/SystemConfiguration/com.apple.DiskArbitration.diskarbitrationd.plist DADisableEjectNotification -bool YES
 pkill diskarbitrationd
 
+# Turn off all notifications
+defaults write com.apple.notificationcenterui doNotDisturb -boolean true
 
+killall NotificationCenter
 killall Dock
