@@ -5,6 +5,6 @@ set -e
 # Recodes mp4 to h.264
 
 INPUT=$1
-OUTPUT=$(echo $1 | sed 's/.mp4/encoded.mp4/')
+OUTPUT=${2:-$(echo $1 | sed 's/.mp4/encoded.mp4/')}
 
 ffmpeg -i $INPUT -c:v libx264 -crf 23 -c:a aac -strict experimental -b:a 192k $OUTPUT
