@@ -17,6 +17,7 @@ source $HOME/.bin/dotfiles/.bluetooth.zconfig
 [[ -f $HOME/.bin/dotfiles/work.zconfig ]] && source $HOME/.bin/dotfiles/.work.zconfig
 source $HOME/.bin/dotfiles/.home.zconfig
 source $HOME/.bin/dotfiles/.useful.zconfig
+source $HOME/.bin/dotfiles/.branches.zconfig
 alias euseful="vi $HOME/.bin/dotfiles/.useful.zconfig"
 source $HOME/.bin/dotfiles/.git.zconfig
 source $HOME/.bin/todos/.todos.zconfig

@@ -1,0 +1,54 @@
+function validatebranch {
+  local branch=$1
+  [[ -z $branch ]] && echo "Branch must be provided"
+}
+
+function ebr {
+  vi $HOME/.bin/branches
+}
+
+function addbranch {
+  local branch=$1
+  validatebranch $branch
+  local number=$(($(brs | tail -n1 | cut -d ' ' -f1)+1))
+  echo "$number $branch" >> $HOME/.bin/branches
+}
+
+function startbranch {
+  addbranch $1 && git checkout -b $1
+}
+
+function sb {
+  git checkout -b $(br $1)
+}
+
+function rebase_indexes {
+  line=1; while read branch; do branch=$(echo $branch | cut -d ' ' -f2): $line $branch; line$(($line+1)); done < $HOME/.bin/tempbranches
+
+}
+
+function rmbranch {
+  local branch=$1
+  validatebranch $branch
+  brs | grep -v $branch >> $HOME/.bin/tempbranches
+  lines=1; for branch in $(brs | cut -d ' ' -f2); do echo $line $branch; line=$(($line+1)); done
+  rm $HOME/.bin/branches
+  rebase_indexes >> $HOME/.bin/branches
+  rm $HOME/.bin/tempbranches
+}
+
+function brs {
+  cat $HOME/.bin/branches | sort | uniq
+}
+
+function br {
+  brs | sed "$1q;d" | cut -d ' ' -f2
+}
+
+function co {
+  [[ "$1" = "d" ]] && git checkout `git_default_branch` || git checkout $(br $1)
+}
+
+function git_default_branch {
+  git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin@@'
+}
