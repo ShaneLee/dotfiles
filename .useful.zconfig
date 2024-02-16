@@ -14,7 +14,7 @@ if type rg &> /dev/null; then
 fi
 
 function gitthis {
-  open "https://github.com/ShaneLee/`basename $PWD`"
+  open "http://$(git remote get-url origin | cut -d '@' -f2 | tr ':' '/' |  sed 's/\.git$//')"
 }
 
 function ggu() {
