@@ -70,6 +70,17 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.j2  setfiletype yaml
 augroup END
 
+function InsertCurrentTime()
+    " Get the current time in ISO 8601 format
+    let current_time = strftime("%Y-%m-%dT%H:%M:%S%z")
+
+    " Insert the line with the current time as an Instant string
+    call append(line('.'), 'private static final Instant NOW = Instant.parse("' . current_time . '");')
+endfunction
+
+" Map a key sequence to trigger the custom function
+nnoremap <leader>nt :call InsertCurrentTime()<CR>
+
 autocmd FileType html,xml set omnifunc=htmlcomplete#CompleteTags
 
 " Templates
