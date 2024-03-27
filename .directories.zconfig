@@ -1,0 +1,22 @@
+alias edir="vi ~/.bin/dotfiles/.directories.zconfig"
+
+FILE=~/.bin/dotfiles/directories
+touch $FILE
+
+function index_with_times() {
+  find ~/dev -type d -maxdepth 3 -exec stat -f "%Sa %N" {} \; | rg -v git | sort -r > $FILE
+}
+
+function index_without_times() {
+  find ~/dev -type d -maxdepth 3 | rg -v git | sort -r > $FILE
+}
+
+index_without_times
+
+function search_dirs() {
+  cat $FILE | fzf --preview 'echo {}' --preview-window=up:1:wrap $@
+}
+
+function zz() {
+  [ $# -eq 0 ] && cd $(search_dirs) || cd "$(search_dirs --query="$1")"
+}

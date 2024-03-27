@@ -3,6 +3,7 @@ export ZSH=$HOME/.bin/.oh-my-zsh
 ZSH_THEME="shane"
 plugins=(git)
 plugins=(web-search)
+plugins=(git z)
 
 export CONDA_AUTO_ACTIVATE_BASE=false
 export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
@@ -18,6 +19,7 @@ source $HOME/.bin/dotfiles/.bluetooth.zconfig
 source $HOME/.bin/dotfiles/.home.zconfig
 source $HOME/.bin/dotfiles/.useful.zconfig
 source $HOME/.bin/dotfiles/.branches.zconfig
+source $HOME/.bin/dotfiles/.directories.zconfig
 alias euseful="vi $HOME/.bin/dotfiles/.useful.zconfig"
 source $HOME/.bin/dotfiles/.git.zconfig
 source $HOME/.bin/todos/.todos.zconfig
@@ -42,6 +44,9 @@ ZSH_COMPDUMP="~/.cache/zsh/zcompdump"
 export LESSSHISTFILE="-"
 
 KEYTIMEOUT=1
+
+zstyle ':completion:*' menu select
+
 source $ZSH/oh-my-zsh.sh
 
 # For tmux spacing
