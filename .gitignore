@@ -3,3 +3,4 @@ tags
 .gitconfig_local
 wbin
 directories
+.secrets.zconfig
