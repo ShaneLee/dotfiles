@@ -15,8 +15,8 @@ alias java11='export JAVA_HOME=$JAVA_11_HOME'
 alias java17='export JAVA_HOME=$JAVA_17_HOME'
 
 source $HOME/.bin/dotfiles/.bluetooth.zconfig
-[[ -f $HOME/.bin/dotfiles/work.zconfig ]] && source $HOME/.bin/dotfiles/.work.zconfig
-[[ -f $HOME/.bin/dotfiles/secrets.zconfig ]] && source $HOME/.bin/dotfiles/.secrets.zconfig
+[[ -f $HOME/.bin/dotfiles/.work.zconfig ]] && source $HOME/.bin/dotfiles/.work.zconfig
+[[ -f $HOME/.bin/dotfiles/.secrets.zconfig ]] && source $HOME/.bin/dotfiles/.secrets.zconfig
 source $HOME/.bin/dotfiles/.home.zconfig
 source $HOME/.bin/dotfiles/.home.zconfig
 source $HOME/.bin/dotfiles/.useful.zconfig
