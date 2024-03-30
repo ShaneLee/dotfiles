@@ -68,6 +68,7 @@ function generate_canon_import_folder() {
   date_prefix="$(date "+%F" | sed 's/-//g')-"
   mkdir -pv "$IMPORT_G7XII_DIR$date_prefix$description"
   open "$IMPORT_G7XII_DIR$date_prefix$description"
+  echo "$IMPORT_G7XII_DIR$date_prefix$description"
 }
 
 # Import everything from GoPro and ZoomH1
@@ -92,6 +93,7 @@ function import_zoom() {
 
 function import_canon_g7xii() {
   folder=$(generate_canon_import_folder $1)
+  echo $folder
   mv -v /Volumes/CANON_DC/DCIM/*/*.CR2 $folder
   mv -v /Volumes/CANON_DC/DCIM/*/*.MP4 $folder
   cd $folder
