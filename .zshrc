@@ -1,9 +1,8 @@
 export ZSH=$HOME/.bin/.oh-my-zsh
 
 ZSH_THEME="shane"
-plugins=(git)
 plugins=(web-search)
-plugins=(git z)
+plugins=(z)
 
 export CONDA_AUTO_ACTIVATE_BASE=false
 export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
