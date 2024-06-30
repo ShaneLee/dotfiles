@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# Converts a horizontal video to a vertical one with a blurred
+# background of the main clip
+
+ffmpeg -i $1 \
+-vf 'scale=1080:1920:force_original_aspect_ratio=decrease:flags=fast_bilinear,split[original][copy];[copy]scale=32:18:force_original_aspect_ratio=increase:flags= fast_bilinear,gblur=sigma=2,scale=1080:1920:flags=fast_bilinear[blurred];[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2,setsar=1' $2
+
