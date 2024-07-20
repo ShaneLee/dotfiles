@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Processes all the files that I want speeding up
+
+mdfind "kMDItemUserTags == 'Grey'" -0 \
+  | xargs -0 -I {} basename {} \
+  | while IFS= read -r file; do
+      speed-up-audio "$file"
+    done
