@@ -22,6 +22,10 @@ setopt HIST_REDUCE_BLANKS
 # Include more information about when the command was executed, etc
 setopt EXTENDED_HISTORY
 
+alias eloc='vi ~/.zshrc'
+
+export PYTHONPATH=$HOME/dev/py-logging-config:$PYTHONPATH
+
 export CONDA_AUTO_ACTIVATE_BASE=false
 export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
 export JAVA_11_HOME=$(/usr/libexec/java_home -v11)
