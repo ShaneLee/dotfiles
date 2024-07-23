@@ -27,12 +27,8 @@ alias eloc='vi ~/.zshrc'
 export PYTHONPATH=$HOME/dev/py-logging-config:$PYTHONPATH
 
 export CONDA_AUTO_ACTIVATE_BASE=false
-export JAVA_8_HOME=$(/usr/libexec/java_home -v1.8)
-export JAVA_11_HOME=$(/usr/libexec/java_home -v11)
 export JAVA_17_HOME=$(/usr/libexec/java_home -v17)
 
-alias java8='export JAVA_HOME=$JAVA_8_HOME'
-alias java11='export JAVA_HOME=$JAVA_11_HOME'
 alias java17='export JAVA_HOME=$JAVA_17_HOME'
 
 source $HOME/.bin/dotfiles/.bluetooth.zconfig
@@ -86,3 +82,6 @@ export NVM_DIR="$HOME/.nvm"
 # Initialise conda, but because this is slow
 # do it in a subshell and prevent it logging anything
 (conda_init &) > /dev/null 2>&1
+
+# Created by `pipx` on 2024-07-23 16:40:18
+export PATH="$PATH:/Users/shane/.local/bin"
