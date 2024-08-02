@@ -2,6 +2,8 @@
 
 # Speeds up audio files
 
+set -e
+
 # Default speed increase
 DEFAULT_SPEED=1.5
 
@@ -16,18 +18,14 @@ if [ $# -lt 1 ]; then
     usage
 fi
 
-FILENAME=$1
-[ -z "$FILENAME" ] && usage
+FILENAME="$1"
+[ -z "$FILENAME" ] && { echo "Usage: $0 <filename> [speed]"; exit 1; }
 
 SPEED=${2:-$DEFAULT_SPEED}
 
-# Extract the file extension
-EXT="${FILENAME##*.}"
-BASENAME="${FILENAME%.*}"
+OUTPUT_FILE="$(dirname $FILENAME)""/sped_$(basename $FILENAME)"
 
-OUTPUT_FILE="sped_${BASENAME}.${EXT}"
-
-ffmpeg -i "$FILENAME" -filter:a "atempo=$SPEED" -vn -map_metadata 0 -c:v copy "$OUTPUT_FILE"
-
+# Process the file with ffmpeg
+ffmpeg -i "$FILENAME" -filter:a "atempo=$SPEED" -vn -map_metadata 0 -c:a libmp3lame "$OUTPUT_FILE"
 
 echo "Processed file saved as: $OUTPUT_FILE"

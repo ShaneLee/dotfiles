@@ -2,8 +2,6 @@
 
 # Processes all the files that I want speeding up
 
-mdfind "kMDItemUserTags == 'Grey'" -0 \
-  | xargs -0 -I {} basename {} \
-  | while IFS= read -r file; do
-      speed-up-audio "$file"
-    done
+set -e
+
+mdfind "kMDItemUserTags == 'Grey'" -0 | xargs -0 -I {} bash -c 'echo "Processing file: {}"; speed-up-audio "{}"'
