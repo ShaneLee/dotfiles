@@ -9,7 +9,6 @@ CASK_INSTALLS=(
   tor-browser
   notion
   obs
-  adoptopenjdk11
   amethyst
   intellij-idea-ce
   dropbox
@@ -29,7 +28,6 @@ BREW_INSTALLS=(
   wget
   rg
   tmux
-  Java11
   mvn
   redis
   cask 
@@ -42,6 +40,7 @@ BREW_INSTALLS=(
   ffmpeg
   git-credential-manager
   yq
+  openjdk@21
 )
 
 PIP_INSTALLS=(
@@ -149,3 +148,5 @@ install_todos
 install_with_pip
 #install_aws_cli
 
+  
+sudo ln -sfn /usr/local/opt/openjdk@21/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-21.jdk
