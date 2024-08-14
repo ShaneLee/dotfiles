@@ -130,7 +130,12 @@ function prefix_file() {
 
 # Rename all files and directories in the current dir
 function rename_convention() {
-   rename 's/\. /-/' * && rename 's/ /-/g' * && rename 's/_/-/g' * && rename --force 'y/A-Z/a-z/' *
+   rename 's/\. /-/' * && rename 's/ /-/g' * && rename 's/_/-/g' * \
+      && rename 's/,//g' * \
+      && rename 's/;//g' * \
+      && rename "s/'//g" * \
+      && rename 's/&/and/g' * \
+      && rename --force 'y/A-Z/a-z/' *
 }
 
 function rename_shoot() {
