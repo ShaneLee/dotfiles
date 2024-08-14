@@ -27,13 +27,10 @@ alias eloc='vi ~/.zshrc'
 export PYTHONPATH=$HOME/dev/py-logging-config:$PYTHONPATH
 
 export CONDA_AUTO_ACTIVATE_BASE=false
-export JAVA_17_HOME=$(/usr/libexec/java_home -v17)
-
-alias java17='export JAVA_HOME=$JAVA_17_HOME'
+export JAVA_HOME=$(/usr/libexec/java_home)
 
 source $HOME/.bin/dotfiles/.bluetooth.zconfig
 [[ -f $HOME/.bin/dotfiles/.work.zconfig ]] && source $HOME/.bin/dotfiles/.work.zconfig
-source $HOME/.bin/dotfiles/.home.zconfig
 source $HOME/.bin/dotfiles/.home.zconfig
 source $HOME/.bin/dotfiles/.useful.zconfig
 source $HOME/.bin/dotfiles/.branches.zconfig

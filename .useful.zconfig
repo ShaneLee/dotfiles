@@ -27,7 +27,6 @@ function ggu() {
   fi
 }
 
-
 # For some mad reason, ZSH fg doesn't do fg 1, you have to do
 # fg %1 - this fixes that complete nonsense
 function fg() {
