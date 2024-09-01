@@ -20,12 +20,18 @@ fi
 
 FILENAME="$1"
 [ -z "$FILENAME" ] && { echo "Usage: $0 <filename> [speed]"; exit 1; }
+ALBUM_ART="$2"
 
 SPEED=${2:-$DEFAULT_SPEED}
 
 OUTPUT_FILE="$(dirname $FILENAME)""/sped_$(basename $FILENAME)"
 
-# Process the file with ffmpeg
-ffmpeg -i "$FILENAME" -filter:a "atempo=$SPEED" -vn -map_metadata 0 -c:a libmp3lame "$OUTPUT_FILE"
+if [[ -z $ALBUM_ART ]]; then
+  # Process the file with ffmpeg
+  ffmpeg -i "$FILENAME" -filter:a "atempo=$SPEED" -vn -map_metadata 0 -c:a libmp3lame "$OUTPUT_FILE"
+else
+  # include the album art
+  ffmpeg -i "$FILENAME" -i "$ALBUM_ART" -filter:a "atempo=$SPEED" -map 0:a -map 1:v -c:a libmp3lame -c:v mjpeg -map_metadata 0 -id3v2_version 3 "$OUTPUT_FILE"
+fi
 
 echo "Processed file saved as: $OUTPUT_FILE"

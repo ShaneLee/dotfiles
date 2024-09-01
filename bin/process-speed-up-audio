@@ -4,4 +4,6 @@
 
 set -e
 
-mdfind "kMDItemUserTags == 'Grey'" -0 | xargs -0 -I {} bash -c 'echo "Processing file: {}"; speed-up-audio "{}"'
+ALBUM_ART="$1"
+
+mdfind "kMDItemUserTags == 'Grey'" -0 | xargs -0 -I {} bash -c 'echo "Processing file: {}"; speed-up-audio "{}" "$ALBUM_ART"'
