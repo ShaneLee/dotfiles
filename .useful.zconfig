@@ -76,8 +76,8 @@ function import_everything() {
   import_gopro $1 &
   echo "importing from Zoom"
   import_zoom $1 &
-  echo "importing from Canon G7x Mkii"
-  import_canon_g7xii $1 &
+  # echo "importing from Canon G7x Mkii"
+  # import_canon_g7xii $1 &
 }
 
 function import_gopro() {
@@ -87,6 +87,8 @@ function import_gopro() {
 function import_zoom() {
   folder=$(generate_import_folder $1)
   mv -v /Volumes/ZOOM/STEREO/FOLDER01/*.MP3 $folder
+  mv -v /Volumes/ZOOM/STEREO/FOLDER01/*.WAV $folder
+  mv -v /Volumes/ZOOM/STEREO/FOLDER01/*.wav $folder
   compress_all $folder
 }
 
