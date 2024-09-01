@@ -1,0 +1,32 @@
+#!/usr/bin/python3
+import os
+import sys
+import requests
+import json
+import mimetypes
+
+API_ENDPOINT = "http://192.168.0.46:8080/files/upload"
+HEADERS = {
+    "tempUserId": "bd11dcc2-77f6-430f-8e87-5839d31ab0e3"
+}
+
+def upload_file(file_path, metadata):
+    with open(file_path, 'rb') as f:
+        mime_type, _ = mimetypes.guess_type(file_path)
+        file_name = os.path.basename(file_path)
+        files = {
+            'file': (file_name, f, mime_type),
+            'metadata': (None, metadata, 'application/json')
+        }
+        
+        response = requests.post(API_ENDPOINT, headers=HEADERS, files=files)
+        
+        if response.status_code == 200 or response.status_code == 201:
+            print(f"Successfully uploaded: {file_name}")
+        else:
+            print(f"Failed to upload {file_name}. Status Code: {response.status_code}, Response: {response.text}")
+
+if __name__ == "__main__":
+    file_path = sys.argv[1]
+    metadata = sys.argv[2]
+    upload_file(file_path, metadata)
