@@ -38,7 +38,6 @@ source $HOME/.bin/dotfiles/.directories.zconfig
 alias euseful="vi $HOME/.bin/dotfiles/.useful.zconfig"
 source $HOME/.bin/dotfiles/.git.zconfig
 source $HOME/.bin/todos/.todos.zconfig
-source $HOME/.bin/sorg/.sorg.config
 
 bindkey '^P' history-beginning-search-backward
 bindkey '^N' history-beginning-search-forward
