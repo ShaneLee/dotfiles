@@ -40,7 +40,10 @@ pretty_git_format() {
     # Replace (2 years, 5 months) with (2 years)
     sed -Ee 's/(^[^<]*), [[:digit:]]+ .*months?\)/\1)/' |
     # Line columns up based on } delimiter
-    column -s '}' -t
+    column -s '}' -t |
+    # Limit to the width of the terminal
+    cut -c1-$(tput cols)
+
 }
 
 git_page_maybe() {
