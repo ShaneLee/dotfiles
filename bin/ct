@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+
+TAGS="not @ignore"
+#
+## TODO work out if this is a mvn or a gradle project
+#mvn failsafe:integration-test -Dtest=CucumberIT
+
+if [[ "$1" == *.feature ]]; then
+  ./gradlew clean test --info -Dcucumber.features="$1"
+elif [[ ! -z "$1" ]]; then
+  TAGS="$TAGS and $1"
+  ./gradlew clean test --info -Dcucumber.filters.tags="$TAGS"
+fi
+
+
+
+
+open "build/reports/tests/test/index.html"

@@ -281,7 +281,7 @@ endfunction
 " Execute CucumberIT
 """"""""""""""""""""""""""""""""""
 function CucumberIT() 
-  execute'!mvn failsafe:integration-test -Dtest=CucumberIT'
+  execute'!ct %'
 endfunction
 
 """"""""""""""""""""""""""""""""""
