@@ -27,6 +27,7 @@ NeoBundle 'junegunn/goyo.vim'
 NeoBundle 'junegunn/fzf'
 NeoBundle 'junegunn/fzf.vim'
 NeoBundle 'lervag/vimtex'
+NeoBundle 'prettier/vim-prettier'
 
 
 call neobundle#end()
