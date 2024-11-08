@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import json
 import argparse
 
@@ -7,6 +6,7 @@ parser = argparse.ArgumentParser(description="Analyze Cucumber JSON report for s
 parser.add_argument("file", type=str, help="Path to the Cucumber JSON report file")
 parser.add_argument("--num", type=int, default=5, help="Number of slowest tests and steps to display (default: 5)")
 parser.add_argument("--no-colour", action="store_true", help="Disable colour output")
+parser.add_argument("--show-failures", action="store_true", help="List all failed tests with their failed steps")
 
 args = parser.parse_args()
 
@@ -14,7 +14,7 @@ with open(args.file, 'r') as file:
     data = json.load(file)
 
 def format_duration(duration_ns):
-    return duration_ns / 1e6
+    return duration_ns / 1e6  # Convert to milliseconds
 
 def coloured_duration(duration_ms, threshold, no_colour):
     RED = "\033[91m"
@@ -31,14 +31,17 @@ def coloured_duration(duration_ms, threshold, no_colour):
 
 slowest_scenarios = []
 slowest_steps = []
+failed_scenarios = []
 
 for feature in data:
     for scenario in feature.get('elements', []):
         scenario_duration = 0
         scenario_steps = []
+        failed_steps = []
         
         for step in scenario.get('steps', []):
             duration = step.get('result', {}).get('duration', 0)
+            result_status = step.get('result', {}).get('status', '')
             scenario_duration += duration
             
             scenario_steps.append({
@@ -47,7 +50,10 @@ for feature in data:
                 'scenario_name': scenario.get('name'),
                 'feature_name': feature.get('name')
             })
-        
+            
+            if args.show_failures and result_status == "failed":
+                failed_steps.append(step.get('name'))
+
         slowest_scenarios.append({
             'scenario_name': scenario.get('name'),
             'feature_name': feature.get('name'),
@@ -56,17 +62,31 @@ for feature in data:
         
         slowest_steps.extend(scenario_steps)
 
-slowest_scenarios = sorted(slowest_scenarios, key=lambda x: x['duration'], reverse=True)
-slowest_steps = sorted(slowest_steps, key=lambda x: x['duration'], reverse=True)
+        if args.show_failures and failed_steps:
+            failed_scenarios.append({
+                'scenario_name': scenario.get('name'),
+                'feature_name': feature.get('name'),
+                'failed_steps': failed_steps
+            })
 
-print("Top Slowest Scenarios:")
-for scenario in slowest_scenarios[:args.num]:
-    duration_ms = format_duration(scenario['duration'])
-    formatted_duration = coloured_duration(duration_ms, 800, args.no_colour)
-    print(f"Feature: {scenario['feature_name']}, Scenario: {scenario['scenario_name']}, Duration: {formatted_duration}")
+if args.show_failures:
+    print("Failed Scenarios and Steps:")
+    for failed in failed_scenarios:
+        print(f"\nFeature: {failed['feature_name']}, Scenario: {failed['scenario_name']}")
+        for step in failed['failed_steps']:
+            print(f"  - Failed Step: {step}")
+else:
+    slowest_scenarios = sorted(slowest_scenarios, key=lambda x: x['duration'], reverse=True)
+    slowest_steps = sorted(slowest_steps, key=lambda x: x['duration'], reverse=True)
 
-print("\nTop Slowest Steps:")
-for step in slowest_steps[:args.num]:
-    duration_ms = format_duration(step['duration'])
-    formatted_duration = coloured_duration(duration_ms, 200, args.no_colour)
-    print(f"Feature: {step['feature_name']}, Scenario: {step['scenario_name']}, Step: {step['step_name']}, Duration: {formatted_duration}")
+    print("Top Slowest Scenarios:")
+    for scenario in slowest_scenarios[:args.num]:
+        duration_ms = format_duration(scenario['duration'])
+        formatted_duration = coloured_duration(duration_ms, 800, args.no_colour)
+        print(f"Feature: {scenario['feature_name']}, Scenario: {scenario['scenario_name']}, Duration: {formatted_duration}")
+
+    print("\nTop Slowest Steps:")
+    for step in slowest_steps[:args.num]:
+        duration_ms = format_duration(step['duration'])
+        formatted_duration = coloured_duration(duration_ms, 200, args.no_colour)
+        print(f"Feature: {step['feature_name']}, Scenario: {step['scenario_name']}, Step: {step['step_name']}, Duration: {formatted_duration}")
