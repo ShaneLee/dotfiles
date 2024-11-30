@@ -130,7 +130,6 @@ function prefix_file() {
   mv -- "$f" "$1$f" 
 }
 
-# Rename all files and directories in the current dir
 function rename_convention() {
    rename 's/\. /-/' * && rename 's/ /-/g' * && rename 's/_/-/g' * \
       && rename 's/,//g' * \
