@@ -95,6 +95,7 @@ au BufRead,BufNewFile *.cmd setlocal textwidth=104
 "
 " Set yaml indenting
 au FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
+au FileType markdown setlocal ts=2 sts=2 sw=2 expandtab
 
 " Python PEP 8
 au BufNewFile,BufRead *.py set tabstop=4 softtabstop=4 shiftwidth=4 textwidth=79 expandtab autoindent fileformat=unix
