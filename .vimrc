@@ -61,6 +61,7 @@ set splitright
 set autoread
 set noerrorbells
 set shell=/bin/zsh
+set iskeyword-=_ "Set _ as a word boundary
 
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
