@@ -30,6 +30,7 @@ NeoBundle 'lervag/vimtex'
 NeoBundle 'prettier/vim-prettier'
 
 
+
 call neobundle#end()
 
 let g:ctrlp_open_multiple_files = 'ji'
@@ -71,6 +72,32 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.j2  setfiletype yaml
 augroup END
+
+command! -nargs=? Ggu execute '!zsh -c "source ~/.zshrc && ggu ' . <q-args> . '"'
+
+function! InsertUUIDsVisual()
+  " Get the number of selected lines
+  let lines = line("'>") - line("'<") + 1
+
+  " Generate the required number of UUIDs
+  let uuids = split(system('zsh -c "source ~/.zshrc && ggu ' . lines . '"'), "\n")
+
+  " Get the starting column
+  let start_col = col("'<")
+
+  " Insert UUIDs at the cursor position for each selected line
+  let lnum = line("'<")
+  for uuid in uuids
+    if uuid !=# ''
+      let line_content = getline(lnum)
+      let updated_line = line_content[:start_col - 2] . uuid . line_content[start_col - 1:]
+      call setline(lnum, updated_line)
+      let lnum += 1
+    endif
+  endfor
+endfunction
+
+xnoremap <silent> <Leader>u :<C-u>call InsertUUIDsVisual()<CR>
 
 function InsertCurrentTime()
     " Get the current time in ISO 8601 format
