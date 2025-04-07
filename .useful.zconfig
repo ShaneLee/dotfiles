@@ -136,6 +136,7 @@ function rename_convention() {
       && rename 's/;//g' * \
       && rename "s/'//g" * \
       && rename 's/&/and/g' * \
+      && rename 's/--/-/g' * \
       && rename --force 'y/A-Z/a-z/' *
 }
 

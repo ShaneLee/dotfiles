@@ -29,6 +29,8 @@ export PYTHONPATH=$HOME/dev/py-logging-config:$PYTHONPATH
 export CONDA_AUTO_ACTIVATE_BASE=false
 export JAVA_HOME=$(/usr/libexec/java_home)
 
+export XDG_CONFIG_HOME="$HOME/.bin/dotfiles/config"
+
 source $HOME/.bin/dotfiles/.bluetooth.zconfig
 [[ -f $HOME/.bin/dotfiles/.work.zconfig ]] && source $HOME/.bin/dotfiles/.work.zconfig
 source $HOME/.bin/dotfiles/.home.zconfig

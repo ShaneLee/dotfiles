@@ -6,4 +6,7 @@ set -e
 
 ALBUM_ART="$1"
 
-mdfind "kMDItemUserTags == 'Grey'" -0 | xargs -0 -I {} bash -c 'echo "Processing file: {}"; speed-up-audio "{}" "$ALBUM_ART"'
+mdfind "kMDItemUserTags == 'Grey'" -0 | while IFS= read -r -d '' file; do
+  echo "Processing file: $file"
+  speed-up-audio "$file" "$ALBUM_ART"
+done
