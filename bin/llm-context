@@ -2,17 +2,36 @@
 
 import os
 import argparse
+from pathlib import Path
 
-def generate_file_structure(base_path):
+import pathspec
+
+def load_gitignore_patterns(base_path):
+    patterns = []
+    local_gitignore = Path(base_path) / '.gitignore'
+    global_gitignore = Path.home() / '.bin' / 'dotfiles' / '.gitignore_global'
+
+    for ignore_file in [local_gitignore, global_gitignore]:
+        if ignore_file.is_file():
+            with open(ignore_file, 'r') as f:
+                patterns.extend(f.readlines())
+
+    return pathspec.PathSpec.from_lines('gitwildmatch', patterns)
+
+def generate_file_structure(base_path, spec):
     lines = []
     for root, dirs, files in os.walk(base_path):
-        # Ignore hidden files and dirs
-        dirs[:] = [d for d in dirs if not d.startswith('.')]
-        files = [f for f in files if not f.startswith('.')]
+        # Ignore hidden dirs/files and those in .gitignore
+        rel_root = os.path.relpath(root, base_path)
+        rel_root = '.' if rel_root == '.' else rel_root + '/'
+
+        dirs[:] = [d for d in dirs if not spec.match_file(os.path.join(rel_root, d))]
+        files = [f for f in files if not spec.match_file(os.path.join(rel_root, f))]
 
         level = root.replace(base_path, '').count(os.sep)
         indent = '  ' * level
         lines.append(f"{indent}- `{os.path.basename(root)}/`")
+
         subindent = '  ' * (level + 1)
         for f in sorted(files):
             lines.append(f"{subindent}- `{f}`")
@@ -34,6 +53,8 @@ def main():
     base_path = os.getcwd()
     output_sections = []
 
+    spec = load_gitignore_patterns(base_path)
+
     if args.summary:
         summary = read_summary(base_path)
         if summary:
@@ -42,7 +63,7 @@ def main():
             output_sections.append('_No summary.md found._')
 
     if args.file_structure:
-        file_structure = generate_file_structure(base_path)
+        file_structure = generate_file_structure(base_path, spec)
         output_sections.append("### File Structure\n" + file_structure)
 
     print('\n\n'.join(output_sections))
