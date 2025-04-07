@@ -64,6 +64,13 @@ def read_summary_md(base_path):
             return f"<!-- summary.md -->\n" + f.read().strip()
     return None
 
+def read_todo_md(base_path):
+    summary_path = Path(base_path) / 'TODO.md'
+    if summary_path.is_file():
+        with open(summary_path, 'r', encoding='utf-8') as f:
+            return f"<!-- TODO.md -->\n" + f.read().strip()
+    return None
+
 def main():
     parser = argparse.ArgumentParser(description='Generate project file structure markdown for LLM input.')
     parser.add_argument('--file-structure', action='store_true', help='Include file structure markdown')
@@ -78,6 +85,7 @@ def main():
     if args.summary:
         llm_blocks = read_llm_markdown(base_path)
         summary_block = read_summary_md(base_path)
+        todo_block = read_todo_md(base_path)
 
         if llm_blocks:
             output_sections.append(llm_blocks)
