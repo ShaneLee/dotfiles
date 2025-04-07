@@ -1,5 +1,7 @@
 node_modules
 
+llm_*.md
+
 tags.lock
 proxy-ci.config.json
 *.swp

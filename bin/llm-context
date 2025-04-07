@@ -21,7 +21,6 @@ def load_gitignore_patterns(base_path):
 def generate_file_structure(base_path, spec):
     lines = []
     for root, dirs, files in os.walk(base_path):
-        # Ignore hidden dirs/files and those in .gitignore
         rel_root = os.path.relpath(root, base_path)
         rel_root = '.' if rel_root == '.' else rel_root + '/'
 
@@ -37,17 +36,38 @@ def generate_file_structure(base_path, spec):
             lines.append(f"{subindent}- `{f}`")
     return '\n'.join(lines)
 
-def read_summary(base_path):
-    summary_path = os.path.join(base_path, 'summary.md')
-    if os.path.isfile(summary_path):
+def read_llm_markdown(base_path):
+    root = Path(base_path)
+    files = []
+
+    # llm-instructions.md first, if exists
+    llm_instructions = root / "llm-instructions.md"
+    if llm_instructions.exists():
+        files.append(llm_instructions)
+
+    # All other llm-*.md files, excluding llm-instructions.md
+    for md in sorted(root.glob("llm-*.md")):
+        if md.name != "llm-instructions.md":
+            files.append(md)
+
+    contents = []
+    for file in files:
+        with open(file, 'r', encoding='utf-8') as f:
+            contents.append(f"<!-- {file.name} -->\n" + f.read().strip())
+
+    return "\n\n".join(contents)
+
+def read_summary_md(base_path):
+    summary_path = Path(base_path) / 'summary.md'
+    if summary_path.is_file():
         with open(summary_path, 'r', encoding='utf-8') as f:
-            return f.read().strip()
+            return f"<!-- summary.md -->\n" + f.read().strip()
     return None
 
 def main():
     parser = argparse.ArgumentParser(description='Generate project file structure markdown for LLM input.')
     parser.add_argument('--file-structure', action='store_true', help='Include file structure markdown')
-    parser.add_argument('--summary', action='store_true', help='Include summary.md content if available')
+    parser.add_argument('--summary', action='store_true', help='Include summary.md and llm-*.md content if available')
 
     args = parser.parse_args()
     base_path = os.getcwd()
@@ -56,11 +76,13 @@ def main():
     spec = load_gitignore_patterns(base_path)
 
     if args.summary:
-        summary = read_summary(base_path)
-        if summary:
-            output_sections.append(summary)
-        else:
-            output_sections.append('_No summary.md found._')
+        llm_blocks = read_llm_markdown(base_path)
+        summary_block = read_summary_md(base_path)
+
+        if llm_blocks:
+            output_sections.append(llm_blocks)
+        if summary_block:
+            output_sections.append(summary_block)
 
     if args.file_structure:
         file_structure = generate_file_structure(base_path, spec)
