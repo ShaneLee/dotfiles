@@ -8,6 +8,10 @@ import pathspec
 
 def load_gitignore_patterns(base_path):
     patterns = []
+
+    # Always ignore the .git directory
+    patterns.append('.git/')
+
     local_gitignore = Path(base_path) / '.gitignore'
     global_gitignore = Path.home() / '.bin' / 'dotfiles' / '.gitignore_global'
 
@@ -24,6 +28,7 @@ def generate_file_structure(base_path, spec):
         rel_root = os.path.relpath(root, base_path)
         rel_root = '.' if rel_root == '.' else rel_root + '/'
 
+        # Filter out ignored directories and files
         dirs[:] = [d for d in dirs if not spec.match_file(os.path.join(rel_root, d))]
         files = [f for f in files if not spec.match_file(os.path.join(rel_root, f))]
 
@@ -40,12 +45,10 @@ def read_llm_markdown(base_path):
     root = Path(base_path)
     files = []
 
-    # llm-instructions.md first, if exists
     llm_instructions = root / "llm-instructions.md"
     if llm_instructions.exists():
         files.append(llm_instructions)
 
-    # All other llm-*.md files, excluding llm-instructions.md
     for md in sorted(root.glob("llm-*.md")):
         if md.name != "llm-instructions.md":
             files.append(md)
@@ -65,16 +68,16 @@ def read_summary_md(base_path):
     return None
 
 def read_todo_md(base_path):
-    summary_path = Path(base_path) / 'TODO.md'
-    if summary_path.is_file():
-        with open(summary_path, 'r', encoding='utf-8') as f:
+    todo_path = Path(base_path) / 'TODO.md'
+    if todo_path.is_file():
+        with open(todo_path, 'r', encoding='utf-8') as f:
             return f"<!-- TODO.md -->\n" + f.read().strip()
     return None
 
 def main():
     parser = argparse.ArgumentParser(description='Generate project file structure markdown for LLM input.')
-    parser.add_argument('--file-structure', action='store_true', help='Include file structure markdown')
-    parser.add_argument('--summary', action='store_true', help='Include summary.md and llm-*.md content if available')
+    parser.add_argument('--file-structure', action='store_true', help='Include file structure markdown', default=True)
+    parser.add_argument('--summary', action='store_true', help='Include summary.md and llm-*.md content if available', default=True)
 
     args = parser.parse_args()
     base_path = os.getcwd()
@@ -91,6 +94,8 @@ def main():
             output_sections.append(llm_blocks)
         if summary_block:
             output_sections.append(summary_block)
+        if todo_block:
+            output_sections.append(todo_block)
 
     if args.file_structure:
         file_structure = generate_file_structure(base_path, spec)
