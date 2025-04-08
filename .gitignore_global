@@ -1,6 +1,8 @@
 node_modules
+.mypy_cache/
 
 llm_*.md
+llm-*.md
 
 tags.lock
 proxy-ci.config.json
