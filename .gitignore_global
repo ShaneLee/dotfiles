@@ -1,5 +1,6 @@
 node_modules
 .mypy_cache/
+.venv/
 
 llm_*.md
 llm-*.md

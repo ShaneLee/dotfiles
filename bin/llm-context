@@ -3,14 +3,15 @@
 import os
 import argparse
 from pathlib import Path
+from collections import defaultdict
 
 import pathspec
 
 def load_gitignore_patterns(base_path):
     patterns = []
 
-    # Always ignore the .git directory
-    patterns.append('.git/')
+    # Always ignore these
+    patterns.extend(['.git/', '.venv/'])
 
     local_gitignore = Path(base_path) / '.gitignore'
     global_gitignore = Path.home() / '.bin' / 'dotfiles' / '.gitignore_global'
@@ -73,6 +74,41 @@ def read_todo_md(base_path):
             return f"<!-- TODO.md -->\n" + f.read().strip()
     return None
 
+def collect_inline_todos(base_path, spec):
+    todos = defaultdict(list)
+
+    for root, _, files in os.walk(base_path):
+        rel_root = os.path.relpath(root, base_path)
+        rel_root = '.' if rel_root == '.' else rel_root
+
+        for file in files:
+            rel_file = os.path.join(rel_root, file) if rel_root != '.' else file
+            if spec.match_file(rel_file):
+                continue
+
+            if not file.endswith(('.py', '.js', '.ts', '.java', '.sh', '.go', '.rb', '.rs', '.cpp', '.c', '.swift')):
+                continue  # only consider common source files
+
+            file_path = os.path.join(root, file)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    for i, line in enumerate(f, start=1):
+                        line = line.strip()
+                        if 'TODO' in line:
+                            todos[rel_file].append(f"* Line {i}: {line}")
+            except Exception as e:
+                todos[rel_file].append(f"* [Error reading file: {e}]")
+
+    if not todos:
+        return None
+
+    output = ["<!-- Extracted TODOs -->"]
+    for file, items in sorted(todos.items()):
+        output.append(f"* `{file}`")
+        for item in items:
+            output.append(f"  {item}")
+    return '\n'.join(output)
+
 def main():
     parser = argparse.ArgumentParser(description='Generate project file structure markdown for LLM input.')
     parser.add_argument('--file-structure', action='store_true', help='Include file structure markdown', default=True)
@@ -93,6 +129,7 @@ def main():
         llm_blocks = read_llm_markdown(base_path)
         summary_block = read_summary_md(base_path)
         todo_block = read_todo_md(base_path)
+        inline_todos = collect_inline_todos(base_path, spec)
 
         if llm_blocks:
             output_sections.append(llm_blocks)
@@ -100,6 +137,8 @@ def main():
             output_sections.append(summary_block)
         if todo_block:
             output_sections.append(todo_block)
+        if inline_todos:
+            output_sections.append(inline_todos)
 
     if args.file_structure:
         file_structure = generate_file_structure(base_path, spec)
