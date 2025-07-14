@@ -50,6 +50,7 @@ function ff() {
 }
 
 IMPORT_MOTO_DIR="/Volumes/Colossus/6_Motorbike/"
+IMPORT_DROPBOX_MOTO_DIR=$HOME"/Dropbox/motorbike-photos/"
 IMPORT_G7XII_DIR="/Volumes/Colossus/7-pictures/cameras/canon-g7x-mkii/"
 
 # Generate the name for the current import
@@ -58,7 +59,9 @@ function generate_import_folder() {
   local description=$1
   date_prefix="$(date "+%F" | sed 's/-//g')-"
   mkdir -pv "$IMPORT_MOTO_DIR$date_prefix$description"
+  mkdir -pv "$IMPORT_DROPBOX_MOTO_DIR$date_prefix$description"
   open "$IMPORT_MOTO_DIR$date_prefix$description"
+  echo "$IMPORT_MOTO_DIR$date_prefix$description"
 }
 
 function generate_canon_import_folder() {
@@ -74,6 +77,8 @@ function generate_canon_import_folder() {
 function import_everything() {
   echo "importing from GoPro"
   import_gopro $1 &
+  echo "importing from DJI Neo"
+  import_djineo $1 &
   echo "importing from Zoom"
   import_zoom $1 &
   # echo "importing from Canon G7x Mkii"
@@ -82,6 +87,11 @@ function import_everything() {
 
 function import_gopro() {
   folder=$(generate_import_folder $1)
+}
+
+function import_djineo() {
+  folder=$(generate_import_folder $1)
+  mv -v /Volumes/Untitled/DCIM/DJI_001/*.* $folder
 }
 
 function import_zoom() {
@@ -145,6 +155,16 @@ function rename_shoot() {
    rename_convention
 }
 
+function fix_wifi() {
+  sudo rm /Library/Preferences/SystemConfiguration/com.apple.airport.preferences.plist
+  sudo rm /Library/Preferences/SystemConfiguration/com.apple.network.identification.plist
+  sudo rm /Library/Preferences/SystemConfiguration/com.apple.wifi.message-tracer.plist
+  sudo rm /Library/Preferences/SystemConfiguration/NetworkInterfaces.plist
+  sudo rm /Library/Preferences/SystemConfiguration/preferences.plist
+
+  sudo ifconfig en0 down && sudo ifconfig en0 up
+
+}
 
 
 function conda_init() {
