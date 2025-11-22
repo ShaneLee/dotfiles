@@ -41,6 +41,7 @@ let mapleader=","
 let g:goyo_width = 120
 
 let g:vimtex_view_method='skim'
+let g:vimtex_compiler_method = 'latexmk'
 
 " Required:
 filetype plugin indent off
@@ -74,6 +75,7 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.j2  setfiletype yaml
 augroup END
 
 command! -nargs=? Ggu execute '!zsh -c "source ~/.zshrc && ggu ' . <q-args> . '"'
+nnoremap <leader>u :read !zsh -c "source ~/.zshrc && ggu 1"<CR>
 
 function! InsertUUIDsVisual()
   " Get the number of selected lines
@@ -210,7 +212,7 @@ noremap Q <Nop>
 nnoremap <leader>ot :r `rn_template`<cr> :execute "normal kdd"<cr>
 
 " Delete cucumber column (takes a count)
-let @c = 'F|df|i|€ýajl'
+let @c = 'F|df|i|ï¿½ï¿½ajl'
 
 if has('ide')
   "Specific remappings for idea vim
