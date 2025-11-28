@@ -83,3 +83,16 @@ export NVM_DIR="$HOME/.nvm"
 
 # Created by `pipx` on 2024-07-23 16:40:18
 export PATH="$PATH:/Users/shane/.local/bin"
+
+# bun completions
+[ -s "/Users/shane/.bun/_bun" ] && source "/Users/shane/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+## [Completion]
+## Completion scripts setup. Remove the following line to uninstall
+[[ -f /Users/shane/.bin/dotfiles/config/.dart-cli-completion/zsh-config.zsh ]] && . /Users/shane/.bin/dotfiles/config/.dart-cli-completion/zsh-config.zsh || true
+## [/Completion]
+

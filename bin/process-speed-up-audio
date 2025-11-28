@@ -7,6 +7,13 @@ set -e
 ALBUM_ART="$1"
 
 mdfind "kMDItemUserTags == 'Grey'" -0 | while IFS= read -r -d '' file; do
-  echo "Processing file: $file"
-  speed-up-audio "$file" "$ALBUM_ART"
+  case "$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')" in
+    *.mp3|*.m4a|*.wav|*.flac|*.aiff|*.ogg)
+      echo "Processing audio file: $file"
+      speed-up-audio "$file" "$ALBUM_ART"
+      ;;
+    *)
+      echo "Skipping non-audio file: $file"
+      ;;
+  esac
 done

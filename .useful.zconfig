@@ -156,14 +156,18 @@ function rename_shoot() {
 }
 
 function fix_wifi() {
-  sudo rm /Library/Preferences/SystemConfiguration/com.apple.airport.preferences.plist
-  sudo rm /Library/Preferences/SystemConfiguration/com.apple.network.identification.plist
-  sudo rm /Library/Preferences/SystemConfiguration/com.apple.wifi.message-tracer.plist
-  sudo rm /Library/Preferences/SystemConfiguration/NetworkInterfaces.plist
-  sudo rm /Library/Preferences/SystemConfiguration/preferences.plist
-
   sudo ifconfig en0 down && sudo ifconfig en0 up
 
+  # rm: /Library/Preferences/SystemConfiguration/com.apple.network.identification.plist: No such file or directory
+  # rm: /Library/Preferences/SystemConfiguration/com.apple.wifi.message-tracer.plist: No such file or directory
+  # rm: /Library/Preferences/SystemConfiguration/NetworkInterfaces.plist: No such file or directory
+  # rm: /Library/Preferences/SystemConfiguration/preferences.plist: No such file or directory
+
+  sudo rm /Library/Preferences/SystemConfiguration/com.apple.airport.preferences.plist \
+    /Library/Preferences/SystemConfiguration/com.apple.network.identification.plist \
+    /Library/Preferences/SystemConfiguration/com.apple.wifi.message-tracer.plist \
+    /Library/Preferences/SystemConfiguration/NetworkInterfaces.plist \
+    /Library/Preferences/SystemConfiguration/preferences.plist
 }
 
 
