@@ -17,7 +17,6 @@ NeoBundleFetch 'Shougo/neobundle.vim'
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'tpope/vim-commentary'
-NeoBundle 'kien/ctrlp.vim'
 NeoBundle 'leafgarland/typescript-vim'
 NeoBundle 'peitalin/vim-jsx-typescript'
 NeoBundle 'ludovicchabant/vim-gutentags'
@@ -33,10 +32,9 @@ NeoBundle 'prettier/vim-prettier'
 call neobundle#end()
 
 let $RIPGREP_CONFIG_PATH = $HOME . '/.ripgreprc'
+let $FZF_DEFAULT_COMMAND = 'rg --files --hidden --glob "!.git"'
 let g:ctrlp_user_command = 'rg %s --files --hidden --glob "!.git"'
 let g:ctrlp_use_caching = 0  " rg is fast enough, skip cache
-let g:ctrlp_open_multiple_files = 'ji'
-let g:ctrlp_custom_ignore = 'node_modules'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*,*.pyc,*__init__*,*/__pycache__,tags,*.o,*.pdf,*.jpg,*.mp3,*.m4a,*.mp4,*.ico,*.png,*.webp,*.svg,*.jpeg,*.avif
 let mapleader=","
 
@@ -52,10 +50,12 @@ filetype plugin on
 NeoBundleCheck
 
 syntax on
+set hlsearch
+set incsearch
 set number relativenumber
 set cursorline
 set ts=2 sts=2 sw=2 expandtab 
-set timeoutlen=1000 ttimeoutlen=0
+set ttimeoutlen=0
 set smartcase
 set smartindent
 set ignorecase
@@ -66,6 +66,7 @@ set autoread
 set noerrorbells
 set shell=/bin/zsh
 set iskeyword-=_ "Set _ as a word boundary
+set hidden  " don't unload buffers when switching (also speeds up CtrlP)
 
 augroup filetypedetect
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.feature setfiletype cucumber
@@ -75,6 +76,14 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.j2  setfiletype yaml
 augroup END
+
+if has('persistent_undo')
+  set undodir=~/.vim/undo
+  set undofile
+  silent !mkdir -p ~/.vim/undo
+endif
+
+nnoremap <C-p> :Files<CR>
 
 command! -nargs=? Ggu execute '!zsh -c "source ~/.zshrc && ggu ' . <q-args> . '"'
 nnoremap <leader>u :read !zsh -c "source ~/.zshrc && ggu 1"<CR>
@@ -139,6 +148,8 @@ cnoremap %% <C-R>=expand('%:h').'/'<cr>
 
 " Reformat entire file
 nnoremap <leader>l mqggVGgq'q
+" Clear highlight with leader+space
+nnoremap <leader><space> :nohlsearch<CR>
 
 """"""""""""""""""""""""""""""""""
 " Angular opens html template
@@ -197,7 +208,7 @@ au FileType typescript nnoremap <leader>tt :call OpenTemplate()<cr>
 au FileType typescript nnoremap <leader>gt :call OpenAngularSpec()<cr>
 
 
-nnoremap <leader>g :grep<space>
+nnoremap <leader>g :silent grep<space>
 nnoremap <leader>gg :Goyo<cr>
 nnoremap <leader>s :%s/
 nnoremap <leader>w :Rg <C-R><C-W><cr>
