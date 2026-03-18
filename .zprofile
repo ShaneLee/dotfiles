@@ -14,3 +14,6 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # Created by `pipx` on 2024-07-23 16:40:18
 export PATH="$PATH:/Users/shane/.local/bin"
+
+# Added by Obsidian
+export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"

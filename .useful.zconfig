@@ -8,6 +8,10 @@ alias ta=tmux a
 alias ij="open -a 'IntelliJ IDEA CE.app'"
 alias code="open -a 'Visual Studio Code.app'"
 
+export OPENAI_BASE_URL=http://localhost:11434/v1
+export OPENAI_API_KEY=ollama
+export OPENAI_MODEL=qwen2.5-coder:14b
+
 if type rg &> /dev/null; then
   export FZF_DEFAULT_COMMAND='rg --files'
   export FZF_DEFAULT_OPTS='-m --height 50% --border'
@@ -15,6 +19,13 @@ fi
 
 function gitthis {
   open "http://$(git remote get-url origin | cut -d '@' -f2 | tr ':' '/' |  sed 's/\.git$//')"
+}
+
+function camel {
+  for f in *; do
+    new=$(echo "$f" | tr '[:upper:]' '[:lower:]' | sed -E 's/[ _]+/-/g')
+    [ "$f" != "$new" ] && mv -n -- "$f" "$new"
+  done
 }
 
 function ggu() {

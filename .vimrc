@@ -33,10 +33,16 @@ call neobundle#end()
 
 let $RIPGREP_CONFIG_PATH = $HOME . '/.ripgreprc'
 let $FZF_DEFAULT_COMMAND = 'rg --files --hidden --glob "!.git"'
-let g:ctrlp_user_command = 'rg %s --files --hidden --glob "!.git"'
-let g:ctrlp_use_caching = 0  " rg is fast enough, skip cache
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*,*.pyc,*__init__*,*/__pycache__,tags,*.o,*.pdf,*.jpg,*.mp3,*.m4a,*.mp4,*.ico,*.png,*.webp,*.svg,*.jpeg,*.avif
 let mapleader=","
+
+if executable('rg')
+  set grepprg=rg\ --vimgrep\ --smart-case\ --hidden
+  set grepformat=%f:%l:%c:%m
+endif
+
+" Quickfix open automatically after grep: 
+autocmd QuickFixCmdPost grep cwindow
 
 let g:goyo_width = 120
 
@@ -76,6 +82,12 @@ au! BufReadPre,BufReadPost,BufRead,BufNewFile *.ejs setfiletype html
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.cmd setfiletype markdown
 au! BufReadPre,BufReadPost,BufRead,BufNewFile *.j2  setfiletype yaml
 augroup END
+
+" Jump to last position when reopening
+autocmd BufReadPost *
+  \ if line("'\"") >= 1 && line("'\"") <= line("$") |
+  \   exe "normal! g`\"" |
+  \ endif
 
 if has('persistent_undo')
   set undodir=~/.vim/undo
@@ -185,7 +197,6 @@ au FileType java noremap <leader>ir :UnusedImportsRemove<cr>
 au FileType java noremap <leader>ih :UnusedImportsReset<cr>
 au FileType java noremap <leader>fa :call FinalField()<cr>
 au FileType java inoremap <leader>cc private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));
-au FileType java inoremap <leader>csid <esc>:call read !csid
 
 """"""""""""""""""""""""""""""""""
 " Python autocmds
