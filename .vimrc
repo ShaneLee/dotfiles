@@ -164,8 +164,7 @@ endfunction
 " Angular opens spec
 """"""""""""""""""""""""""""""""""
 function! OpenAngularSpec()
-  let new_file = substitute(expand("%"), '\.ts', '\.spec\.ts', '')
-  let new_file = substitute(expand("%"), '\.html', '\.spec\.ts', '')
+  let new_file = substitute(expand("%"), '\.\(ts\|html\)', '\.spec\.ts', '')
   exec ':e ' new_file
 endfunction
 
