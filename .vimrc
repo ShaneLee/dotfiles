@@ -25,8 +25,9 @@ NeoBundle 'junegunn/goyo.vim'
 NeoBundle 'junegunn/fzf'
 NeoBundle 'junegunn/fzf.vim'
 NeoBundle 'lervag/vimtex'
-NeoBundle 'prettier/vim-prettier'
 
+" Instead of prettier
+au FileType typescript,javascript,json setlocal formatprg=prettier\ --stdin-filepath\ %
 
 call neobundle#end()
 
