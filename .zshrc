@@ -30,6 +30,7 @@ export CONDA_AUTO_ACTIVATE_BASE=false
 export JAVA_HOME=$(/usr/libexec/java_home)
 
 export XDG_CONFIG_HOME="$HOME/.bin/dotfiles/config"
+export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
 source $HOME/.bin/dotfiles/.bluetooth.zconfig
 [[ -f $HOME/.bin/dotfiles/.work.zconfig ]] && source $HOME/.bin/dotfiles/.work.zconfig
@@ -96,3 +97,13 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 [[ -f /Users/shane/.bin/dotfiles/config/.dart-cli-completion/zsh-config.zsh ]] && . /Users/shane/.bin/dotfiles/config/.dart-cli-completion/zsh-config.zsh || true
 ## [/Completion]
 
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+export PATH="/usr/local/lib/docker:$PATH"
+export PATH="/usr/local/lib/docker:$PATH"
+export PATH="/usr/local/lib/docker:$PATH"
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+# opencode
+export PATH=/Users/shane/.opencode/bin:$PATH

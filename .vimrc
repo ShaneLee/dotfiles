@@ -30,9 +30,9 @@ NeoBundle 'lervag/vimtex'
 NeoBundle 'prettier/vim-prettier'
 
 
-
 call neobundle#end()
 
+let $RIPGREP_CONFIG_PATH = $HOME . '/.ripgreprc'
 let g:ctrlp_open_multiple_files = 'ji'
 let g:ctrlp_custom_ignore = 'node_modules'
 set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.idea/*,*/.DS_Store,*/vendor,*.iml,*.class,*/target/*,*.pyc,*__init__*,*/__pycache__,tags,*.o,*.pdf,*.jpg,*.mp3,*.m4a,*.mp4,*.ico,*.png,*.webp,*.svg,*.jpeg,*.avif

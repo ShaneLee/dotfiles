@@ -1,0 +1,14 @@
+--max-columns=150
+--max-columns-preview
+--smart-case
+--hidden
+--glob=!.git
+--glob=!node_modules
+--glob=!target
+--glob=!*.class
+--glob=!*.pyc
+--glob=!*.pdf
+--glob=!*.jpg
+--glob=!*.png
+--glob=!*.mp4
+--glob=!*.mp3
