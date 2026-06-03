@@ -52,6 +52,22 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# ANSI Color codes
+# ═══════════════════════════════════════════════════════════════════════════════
+class Colors:
+    CYAN = "\033[36m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    GREY = "\033[90m"
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
+    
+    @staticmethod
+    def wrap(text: str, color: str) -> str:
+        return f"{color}{text}{Colors.RESET}"
+
 MODEL        = "gemma4:e4b"
 OLLAMA_URL   = "http://localhost:11434/api"
 PERMS_FILE   = Path.home() / ".ollama_chat_perms.json"
@@ -86,6 +102,7 @@ class Spinner:
         self._stop_event.set()
         self._thread.join()
         print(f"\r{' ' * (len(self._message) + 3)}\r", end="", flush=True)
+    sys.stdout.flush()
 
     def __enter__(self):  return self.start()
     def __exit__(self, *_): self.stop()
@@ -98,8 +115,24 @@ class Spinner:
 #   shell:<command_stem>   e.g.  shell:ls   shell:git log   shell:git commit
 #   write_file             (any write_file call)
 #
-# Value:  "ask" | "session" | "global"
-# Global perms live in PERMS_FILE.  Session perms live in _session_perms.
+# Persistence Model:
+#   - GLOBAL permissions: stored persistently in ~/.ollama_chat_perms.json
+#     These survive across all sessions and directories (user-wide)
+#     Grant with 'g' option at permission prompt
+#     Revoke with /revoke or by editing the JSON file
+#
+#   - SESSION permissions: stored in _session_perms dict (in-memory only)
+#     Only active for the current run of the script
+#     Grant with 's' option at permission prompt
+#     Lost when the session ends
+#
+#   - ASK (default): prompt each time before allowing
+#     No persistence — user must approve each action
+#
+# Permission flow when tool is called:
+#   1. Check _session_perms (this session only)
+#   2. Check PERMS_FILE (global permissions)
+#   3. If neither allows, prompt user for: [y]es once, [s]ession, [g]lobal, [n]o
 
 _session_perms: dict[str, str] = {}   # key → "allow"
 
@@ -852,34 +885,35 @@ def handle_slash(cmd: str) -> bool:
     """
     Handle /commands typed by the user.
     Returns True if handled (skip sending to model), False otherwise.
+    Note: cmd has the leading '/' already stripped by caller.
     """
     parts = cmd.strip().split(None, 1)
     name  = parts[0].lower()
     arg   = parts[1] if len(parts) > 1 else ""
 
-    if name == "/perms":
+    if name == "perms":
         list_permissions()
         return True
 
-    if name == "/revoke":
+    if name == "revoke":
         if arg:
             revoke_permission(arg)
         else:
             print("Usage: /revoke <key>  e.g. /revoke shell:git commit")
         return True
 
-    if name == "/tasks":
+    if name == "tasks":
         print()
         print_tasks()
         print()
         return True
 
-    if name == "/skills":
+    if name == "skills":
         print()
         print_skills()
         return True
 
-    if name == "/skill":
+    if name == "skill":
         # /skill <name>  — print the full body of a named skill
         if not arg:
             print("  Usage: /skill <name>")
@@ -895,7 +929,7 @@ def handle_slash(cmd: str) -> bool:
                 print(f"  [skill {arg.strip()!r} not found in {SKILLS_DIR}]")
         return True
 
-    if name == "/help":
+    if name == "help":
         print("""
   Slash commands:
     /perms              — list current permissions
@@ -1008,7 +1042,7 @@ def prompt_line_with_at_support(prompt_text: str = "You: ") -> str:
 
     _install_sigtstp(_tstp_handler)
 
-    print(prompt_text, end="", flush=True)
+    print(Colors.wrap(prompt_text, Colors.CYAN), end="", flush=True)
     full_input = ""
     
     try:
@@ -1105,15 +1139,16 @@ def one_shot(prompt: str, file_content: str | None, output_path: str | None,
 
     messages.append({"role": "user", "content": build_user_message(expanded_prompt, inline_paths)})
 
-    print(f"\n{MODEL}: ", end="", flush=True)
+    print(f"\n{Colors.wrap(MODEL + ':', Colors.GREEN)} ", end="", flush=True)
     reply = stream_chat(messages)
+    print()  # newline after response
 
     if output_path:
         write_file_safe(output_path, reply)
 
 
 def interactive(file_content: str | None, output_path: str | None, tools: bool) -> None:
-    print(f"Chatting with {MODEL}. Type 'exit' or Ctrl-C to quit.")
+    print(f"Chatting with {Colors.wrap(MODEL, Colors.BOLD)}. Type 'exit' or Ctrl-C to quit.")
     print("Tips: use @ to attach files (fzf opens inline), /help for commands")
     if tools:
         print("Tools: shell, write_file, read_file, task_add/done/list are available")
@@ -1123,7 +1158,7 @@ def interactive(file_content: str | None, output_path: str | None, tools: bool) 
         print("[File loaded via -f — model has access to its contents]")
     if output_path:
         print(f"[Conversation will be saved to {output_path} on exit]")
-    print()
+    print(Colors.wrap("═" * 80, Colors.GREY))
 
     sys_prompt = build_system_prompt(file_content, tools)
     messages: list[dict] = []
@@ -1169,9 +1204,10 @@ def interactive(file_content: str | None, output_path: str | None, tools: bool) 
             if inline_paths:
                 transcript_parts.append(f"  [attached: {', '.join(str(p) for p in inline_paths)}]")
 
-            print(f"\n{MODEL}: ", end="", flush=True)
+            print(f"\n{Colors.wrap(MODEL + ':', Colors.GREEN)} ", end="", flush=True)
             reply = stream_chat(messages)
             print()
+            print(Colors.wrap("─" * 80, Colors.GREY))
 
             messages.append({"role": "assistant", "content": reply})
             transcript_parts.append(f"{MODEL}: {reply}")
@@ -1207,7 +1243,7 @@ def run_tasks(tools: bool) -> None:
             messages.append({"role": "system", "content": sys_prompt})
         messages.append({"role": "user", "content": detail})
 
-        print(f"\n{MODEL}: ", end="", flush=True)
+        print(f"\n{Colors.wrap(MODEL + ':', Colors.GREEN)} ", end="", flush=True)
         try:
             reply = stream_chat(messages)
             task_done(tid, reply[:200])
@@ -1215,6 +1251,182 @@ def run_tasks(tools: bool) -> None:
         except Exception as e:
             task_fail(tid, str(e))
             print(f"\n  [task #{tid} failed: {e}]\n")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Resume session support
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def find_latest_transcript(directory: str) -> Path | None:
+    """
+    Find the most recently modified file in directory that looks like a transcript.
+    Heuristic: files with User/model names in content.
+    Returns the path or None if no suitable file found.
+    """
+    dir_path = Path(directory).expanduser().resolve()
+    if not dir_path.is_dir():
+        return None
+    
+    candidates = []
+    for file_path in dir_path.iterdir():
+        if file_path.is_file() and file_path.suffix in {".txt", ".md", ""}:
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+                if "You:" in content or f"{MODEL}:" in content:
+                    candidates.append((file_path.stat().st_mtime, file_path))
+            except Exception:
+                pass
+    
+    if not candidates:
+        return None
+    candidates.sort(reverse=True)
+    return candidates[0][1]
+
+
+def parse_transcript(content: str) -> list[dict]:
+    """
+    Parse a transcript file back into messages.
+    Format: "You: <msg>" and "MODEL: <msg>" separated by blank lines.
+    Returns list of {"role": "user"|"assistant", "content": "..."} dicts.
+    """
+    messages = []
+    # Split by double newlines to separate exchanges
+    exchanges = content.split("\n\n")
+    
+    for exchange in exchanges:
+        exchange = exchange.strip()
+        if not exchange:
+            continue
+        
+        lines = exchange.split("\n", 1)
+        first_line = lines[0].strip()
+        rest = lines[1].strip() if len(lines) > 1 else ""
+        
+        # Extract metadata lines (lines starting with [)
+        content_lines = []
+        for line in rest.split("\n"):
+            if line.strip().startswith("[") and line.strip().endswith("]"):
+                # Skip metadata like [skills: ...], [attached: ...]
+                continue
+            content_lines.append(line)
+        
+        msg_content = "\n".join(content_lines).strip()
+        
+        if first_line.startswith("You:"):
+            messages.append({"role": "user", "content": msg_content})
+        elif ":" in first_line and first_line.endswith(":"):
+            # Model response (e.g., "gemma4:e4b:")
+            messages.append({"role": "assistant", "content": msg_content})
+    
+    return messages
+
+
+def resume_session(directory: str, file_content: str | None, output_path: str | None,
+                   tools: bool) -> None:
+    """
+    Resume an interactive session from a directory's latest transcript.
+    Loads previous messages and continues the conversation.
+    """
+    transcript_path = find_latest_transcript(directory)
+    if transcript_path is None:
+        print(f"[No transcript found in {directory}]")
+        print("[Starting fresh session instead]\n")
+        interactive(file_content, output_path, tools)
+        return
+    
+    print(f"[Resuming from {Colors.wrap(str(transcript_path), Colors.CYAN)}]\n")
+    
+    transcript_content = transcript_path.read_text(encoding="utf-8", errors="replace")
+    previous_messages = parse_transcript(transcript_content)
+    
+    if not previous_messages:
+        print("[Could not parse previous messages]")
+        print("[Starting fresh session instead]\n")
+        interactive(file_content, output_path, tools)
+        return
+    
+    # Start interactive mode with previous messages loaded
+    print(f"Resuming chat with {Colors.wrap(MODEL, Colors.BOLD)}. Type 'exit' or Ctrl-C to quit.")
+    print("Tips: use @ to attach files (fzf opens inline), /help for commands")
+    if tools:
+        print("Tools: shell, write_file, read_file, task_add/done/list are available")
+    if file_content:
+        print("[File loaded via -f — model has access to its contents]")
+    if output_path:
+        print(f"[New messages will be appended to {output_path}]")
+    print(Colors.wrap("─" * 80, Colors.GREY))
+    print(f"[Previous messages loaded: {len(previous_messages)} entries]")
+    print(Colors.wrap("─" * 80, Colors.GREY))
+    print()
+    
+    # Build system prompt
+    sys_prompt = build_system_prompt(file_content, tools)
+    messages: list[dict] = []
+    if sys_prompt:
+        messages.append({"role": "system", "content": sys_prompt})
+    
+    # Add previous messages
+    messages.extend(previous_messages)
+    
+    # New transcript parts (for appending)
+    transcript_parts: list[str] = []
+    
+    # Continue the interactive loop
+    try:
+        while True:
+            try:
+                raw_input = prompt_line_with_at_support("You: ").strip()
+            except EOFError:
+                break
+            
+            if not raw_input:
+                continue
+            if raw_input.lower() in {"exit", "quit", "q"}:
+                break
+            if raw_input.startswith("/") and handle_slash(raw_input[1:] if raw_input[1:2] != "/" else raw_input):
+                continue
+            
+            # Expand @skill: refs first, then regular @ file refs
+            expanded, skill_list = expand_skill_refs(raw_input)
+            expanded, inline_paths = expand_at_refs(expanded)
+            
+            if skill_list:
+                print(f"  [skills: {', '.join(s['name'] for s in skill_list)}]")
+            if inline_paths:
+                print(f"  [attached: {', '.join(str(p) for p in inline_paths)}]")
+            
+            # Skills injected as a user-turn context block
+            skill_context = ""
+            if skill_list:
+                skill_context = "\n\n".join(format_skill_block(s) for s in skill_list) + "\n\n"
+            
+            user_content = skill_context + build_user_message(expanded, inline_paths)
+            messages.append({"role": "user", "content": user_content})
+            transcript_parts.append(f"You: {expanded}")
+            if skill_list:
+                transcript_parts.append(f"  [skills: {', '.join(s['name'] for s in skill_list)}]")
+            if inline_paths:
+                transcript_parts.append(f"  [attached: {', '.join(str(p) for p in inline_paths)}]")
+            
+            print(f"\n{Colors.wrap(MODEL + ':', Colors.GREEN)} ", end="", flush=True)
+            reply = stream_chat(messages)
+            print()
+            print(Colors.wrap("─" * 80, Colors.GREY))
+            
+            messages.append({"role": "assistant", "content": reply})
+            transcript_parts.append(f"{MODEL}: {reply}")
+    
+    except KeyboardInterrupt:
+        print("\n[interrupted]")
+    
+    if output_path and transcript_parts:
+        # Append to existing output
+        try:
+            existing = Path(output_path).read_text(encoding="utf-8") + "\n\n"
+        except FileNotFoundError:
+            existing = ""
+        Path(output_path).write_text(existing + "\n\n".join(transcript_parts), encoding="utf-8")
+        print(f"\n[appended to → {output_path}]")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1249,6 +1461,8 @@ def main() -> None:
                         help="Print the task queue and exit")
     parser.add_argument("--perms",          action="store_true",
                         help="Show current permissions and exit")
+    parser.add_argument("--resume",         nargs='?', const='.', metavar="DIR",
+                        help="Resume a session from the latest transcript (default: current dir)")
 
     args = parser.parse_args()
 
@@ -1278,6 +1492,8 @@ def main() -> None:
         run_tasks(tools)
     elif args.prompt:
         one_shot(args.prompt, file_content, args.output, tools)
+    elif args.resume:
+        resume_session(args.resume, file_content, args.output, tools)
     else:
         interactive(file_content, args.output, tools)
 
