@@ -10,10 +10,11 @@ Usage:
   python ollama_chat.py --tasks                  # run pending tasks from DB
 
 @ references (interactive mode):
-  Type @ anywhere to open fzf and pick a file.
-    You: summarise @
-    You: diff @ and @
-    You: what's wrong with @src/
+  Type @ to open fzf and pick files. Each Enter selection adds the file
+  to the message without submitting the prompt, allowing you to:
+    - Add multiple files: @file1 some text @file2 more text
+    - Mix files and regular text: diff @ vs @
+    - Continue editing after each file selection
 
 Tool use:
   The model can run shell commands and write files.
@@ -55,7 +56,7 @@ MODEL        = "gemma4:e4b"
 OLLAMA_URL   = "http://localhost:11434/api"
 PERMS_FILE   = Path.home() / ".ollama_chat_perms.json"
 TASKS_DB     = Path.home() / ".ollama_chat_tasks.db"
-SKILLS_DIR   = Path.home() / ".skills"
+SKILLS_DIR   = Path.home() / ".bin/.skills"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -904,10 +905,15 @@ def handle_slash(cmd: str) -> bool:
     /skill <name>       — show a skill's full content
     /help               — this message
 
-  @ references:
-    @filename           — attach a file (opens fzf)
-    @skill:name         — inject a skill into the conversation
+  @ references (interactive mode):
+    @<filename>         — attach file(s) via fzf (doesn't submit, allows more input)
     @@                  — literal @
+    @skill:name         — inject a skill into the conversation
+    
+  Examples:
+    You: summarise @          (opens fzf, then continues accepting input)
+    You: compare @ vs @       (pick two files, continue editing)
+    You: explain @ and add @  (add multiple files before sending)
 """)
         return True
 
@@ -990,6 +996,95 @@ def prompt_line(prompt_text: str = "You: ") -> str:
     return input(prompt_text)
 
 
+def prompt_line_with_at_support(prompt_text: str = "You: ") -> str:
+    """
+    Interactive prompt that handles @ for file picking inline.
+    When user types @, fzf opens to select a file, then continues prompting.
+    Allows multiple @ references and additional typing after each selection.
+    """
+    def _tstp_handler(signum, frame):
+        _suspend_to_shell()
+        _install_sigtstp(_tstp_handler)
+
+    _install_sigtstp(_tstp_handler)
+
+    print(prompt_text, end="", flush=True)
+    full_input = ""
+    
+    try:
+        while True:
+            # Read a line from user
+            try:
+                user_line = input("")
+            except EOFError:
+                if full_input:
+                    return full_input
+                raise
+            
+            # Process @ references in this line
+            processed = ""
+            i = 0
+            found_at = False
+            
+            while i < len(user_line):
+                ch = user_line[i]
+                
+                # Check for @ file reference (but not @@)
+                if ch == "@" and (i + 1 >= len(user_line) or user_line[i + 1] != "@"):
+                    found_at = True
+                    # Extract hint (text after @ until whitespace)
+                    j = i + 1
+                    while j < len(user_line) and not user_line[j].isspace():
+                        j += 1
+                    hint = user_line[i + 1:j]
+                    
+                    # Open fzf to pick a file
+                    print()
+                    chosen = pick_file(hint)
+                    
+                    if chosen is None:
+                        # User cancelled or no file selected
+                        processed += user_line[i:j]
+                        i = j
+                    else:
+                        p = Path(chosen)
+                        if not p.exists():
+                            print(f"  [warning: {chosen!r} not found, skipping]")
+                            processed += user_line[i:j]
+                            i = j
+                        else:
+                            # File selected successfully
+                            processed += chosen
+                            full_input += processed
+                            print(f"  [attached: {chosen}]")
+                            
+                            # Continue to next line, show the accumulated input and prompt for more
+                            print(prompt_text + full_input, end="", flush=True)
+                            processed = ""
+                            i = j
+                elif ch == "@" and i + 1 < len(user_line) and user_line[i + 1] == "@":
+                    # Escaped @ → literal @
+                    processed += "@"
+                    i += 2
+                else:
+                    processed += ch
+                    i += 1
+            
+            # Add the processed line to full input
+            full_input += processed
+            
+            # If we found and processed @ references, loop back to prompt for more
+            if found_at:
+                print()
+                print(prompt_text + full_input, end="", flush=True)
+            else:
+                # No @ references, user is done
+                return full_input
+                
+    except EOFError:
+        return full_input if full_input else ""
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Modes
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1019,7 +1114,7 @@ def one_shot(prompt: str, file_content: str | None, output_path: str | None,
 
 def interactive(file_content: str | None, output_path: str | None, tools: bool) -> None:
     print(f"Chatting with {MODEL}. Type 'exit' or Ctrl-C to quit.")
-    print("Tips: use @ to attach a file, /help for commands")
+    print("Tips: use @ to attach files (fzf opens inline), /help for commands")
     if tools:
         print("Tools: shell, write_file, read_file, task_add/done/list are available")
     if not _fzf_available():
@@ -1040,7 +1135,7 @@ def interactive(file_content: str | None, output_path: str | None, tools: bool) 
     try:
         while True:
             try:
-                raw_input = prompt_line("You: ").strip()
+                raw_input = prompt_line_with_at_support("You: ").strip()
             except EOFError:
                 break
 
