@@ -1,0 +1,1191 @@
+#!/usr/bin/env python3
+"""
+CLI for interacting with ollama run gemma4:e4b.
+Supports file I/O, @ file references (fzf), shell tools, and a task queue.
+
+Usage:
+  python ollama_chat.py                          # interactive chat
+  python ollama_chat.py -p "summarise this" -f input.txt
+  python ollama_chat.py -p "translate" -f doc.txt -o out.txt
+  python ollama_chat.py --tasks                  # run pending tasks from DB
+
+@ references (interactive mode):
+  Type @ anywhere to open fzf and pick a file.
+    You: summarise @
+    You: diff @ and @
+    You: what's wrong with @src/
+
+Tool use:
+  The model can run shell commands and write files.
+  Permissions are checked before every tool call:
+    - ask        : prompt each time
+    - session    : allow for this run only
+    - global     : persisted to ~/.ollama_chat_perms.json
+
+  Examples of what you might globally allow:
+    ls, git log, git status, git diff
+
+  Examples that should stay as 'ask':
+    git commit, git push, rm, write_file
+
+Task queue:
+  The model can call task_add / task_done / task_list to manage a
+  SQLite task list (~/.ollama_chat_tasks.db).  Use --tasks to run all
+  pending tasks autonomously.
+"""
+
+import argparse
+import json
+import os
+import re
+import shlex
+import shutil
+import signal
+import sqlite3
+import subprocess
+import sys
+import termios
+import threading
+import time
+import urllib.request
+import urllib.error
+from pathlib import Path
+
+MODEL        = "gemma4:e4b"
+OLLAMA_URL   = "http://localhost:11434/api"
+PERMS_FILE   = Path.home() / ".ollama_chat_perms.json"
+TASKS_DB     = Path.home() / ".ollama_chat_tasks.db"
+SKILLS_DIR   = Path.home() / ".skills"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Spinner
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class Spinner:
+    _FRAMES = "⣾⣽⣻⢿⡿⣟⣯⣷"
+
+    def __init__(self, message: str = "Thinking…") -> None:
+        self._message = message
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+
+    def _spin(self) -> None:
+        i = 0
+        while not self._stop_event.is_set():
+            print(f"\r{self._FRAMES[i % 8]} {self._message}", end="", flush=True)
+            i += 1
+            time.sleep(0.08)
+
+    def start(self) -> "Spinner":
+        self._thread.start()
+        return self
+
+    def stop(self) -> None:
+        self._stop_event.set()
+        self._thread.join()
+        print(f"\r{' ' * (len(self._message) + 3)}\r", end="", flush=True)
+
+    def __enter__(self):  return self.start()
+    def __exit__(self, *_): self.stop()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Permissions
+# ═══════════════════════════════════════════════════════════════════════════════
+# Permission key:
+#   shell:<command_stem>   e.g.  shell:ls   shell:git log   shell:git commit
+#   write_file             (any write_file call)
+#
+# Value:  "ask" | "session" | "global"
+# Global perms live in PERMS_FILE.  Session perms live in _session_perms.
+
+_session_perms: dict[str, str] = {}   # key → "allow"
+
+
+def _load_global_perms() -> dict[str, str]:
+    if PERMS_FILE.exists():
+        try:
+            return json.loads(PERMS_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_global_perms(perms: dict[str, str]) -> None:
+    PERMS_FILE.write_text(json.dumps(perms, indent=2))
+
+
+def _perm_key_for_shell(cmd: str) -> str:
+    """
+    Derive a permission key from a shell command string.
+    'git log --oneline' → 'shell:git log'
+    'ls -la'            → 'shell:ls'
+    'rm -rf /'          → 'shell:rm'
+    """
+    parts = shlex.split(cmd)
+    if not parts:
+        return "shell:<empty>"
+    stem = parts[0]
+    # For multi-word tools like git, include the subcommand
+    if stem == "git" and len(parts) > 1 and not parts[1].startswith("-"):
+        stem = f"git {parts[1]}"
+    return f"shell:{stem}"
+
+
+def check_permission(key: str, description: str) -> bool:
+    """
+    Returns True if the action is permitted, False to deny.
+    Prompts the user if needed and records the decision.
+    """
+    # Session allow?
+    if _session_perms.get(key) == "allow":
+        return True
+
+    # Global allow?
+    global_perms = _load_global_perms()
+    if global_perms.get(key) == "allow":
+        return True
+
+    # Ask
+    print(f"\n  ┌─ Permission required ───────────────────────────────")
+    print(f"  │  Action : {description}")
+    print(f"  │  Key    : {key}")
+    print(f"  ├─────────────────────────────────────────────────────")
+    print(f"  │  [y] Allow once")
+    print(f"  │  [s] Allow for this session")
+    print(f"  │  [g] Always allow (saved globally)")
+    print(f"  │  [n] Deny")
+    print(f"  └─────────────────────────────────────────────────────")
+
+    while True:
+        try:
+            choice = input("  Choice [y/s/g/n]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\n  [denied]")
+            return False
+
+        if choice == "y":
+            return True
+        elif choice == "s":
+            _session_perms[key] = "allow"
+            print(f"  [session: {key} allowed]")
+            return True
+        elif choice == "g":
+            gp = _load_global_perms()
+            gp[key] = "allow"
+            _save_global_perms(gp)
+            print(f"  [global: {key} saved to {PERMS_FILE}]")
+            return True
+        elif choice == "n":
+            print("  [denied]")
+            return False
+        else:
+            print("  Please enter y, s, g, or n.")
+
+
+def revoke_permission(key: str) -> None:
+    """Remove a global permission entry."""
+    gp = _load_global_perms()
+    removed = gp.pop(key, None)
+    if removed:
+        _save_global_perms(gp)
+        print(f"[revoked global permission: {key}]")
+    _session_perms.pop(key, None)
+    print(f"[revoked session permission: {key}]" if key in _session_perms else "")
+
+
+def list_permissions() -> None:
+    gp = _load_global_perms()
+    print("\n  Global permissions (stored in ~/.ollama_chat_perms.json):")
+    if gp:
+        for k, v in sorted(gp.items()):
+            print(f"    {k} = {v}")
+    else:
+        print("    (none)")
+    print("\n  Session permissions (this run only):")
+    if _session_perms:
+        for k, v in sorted(_session_perms.items()):
+            print(f"    {k} = {v}")
+    else:
+        print("    (none)")
+    print()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Task queue  (SQLite)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _get_db() -> sqlite3.Connection:
+    db = sqlite3.connect(TASKS_DB)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            title   TEXT NOT NULL,
+            detail  TEXT,
+            status  TEXT NOT NULL DEFAULT 'pending',
+            result  TEXT,
+            created TEXT NOT NULL DEFAULT (datetime('now')),
+            updated TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    db.commit()
+    return db
+
+
+def task_add(title: str, detail: str = "") -> int:
+    db = _get_db()
+    cur = db.execute(
+        "INSERT INTO tasks (title, detail) VALUES (?, ?)", (title, detail)
+    )
+    db.commit()
+    return cur.lastrowid
+
+
+def task_done(task_id: int, result: str = "") -> None:
+    db = _get_db()
+    db.execute(
+        "UPDATE tasks SET status='done', result=?, updated=datetime('now') WHERE id=?",
+        (result, task_id),
+    )
+    db.commit()
+
+
+def task_fail(task_id: int, reason: str = "") -> None:
+    db = _get_db()
+    db.execute(
+        "UPDATE tasks SET status='failed', result=?, updated=datetime('now') WHERE id=?",
+        (reason, task_id),
+    )
+    db.commit()
+
+
+def task_list_all() -> list[dict]:
+    db = _get_db()
+    rows = db.execute(
+        "SELECT id, title, detail, status, result, created, updated FROM tasks ORDER BY id"
+    ).fetchall()
+    cols = ["id", "title", "detail", "status", "result", "created", "updated"]
+    return [dict(zip(cols, row)) for row in rows]
+
+
+def task_list_pending() -> list[dict]:
+    return [t for t in task_list_all() if t["status"] == "pending"]
+
+
+def print_tasks() -> None:
+    tasks = task_list_all()
+    if not tasks:
+        print("  (no tasks)")
+        return
+    status_icons = {"pending": "○", "done": "✓", "failed": "✗"}
+    for t in tasks:
+        icon = status_icons.get(t["status"], "?")
+        print(f"  [{icon}] #{t['id']}  {t['title']}")
+        if t["detail"]:
+            print(f"         {t['detail'][:80]}")
+        if t["result"]:
+            print(f"         → {t['result'][:80]}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Tool execution
+# ═══════════════════════════════════════════════════════════════════════════════
+
+TOOLS_SYSTEM_PROMPT = """
+You have access to the following tools. Use them by outputting a fenced block:
+
+~~~tool
+{
+  "tool": "<tool_name>",
+  ... parameters ...
+}
+~~~
+
+Available tools:
+
+1. shell — run a shell command
+   { "tool": "shell", "cmd": "ls -la src/" }
+
+2. write_file — write content to a file
+   { "tool": "write_file", "path": "foo.py", "content": "..." }
+
+3. read_file — read a file (no permission needed)
+   { "tool": "read_file", "path": "foo.py" }
+
+4. task_add — add a sub-task to the queue
+   { "tool": "task_add", "title": "Run tests", "detail": "pytest -x" }
+
+5. task_done — mark a task complete
+   { "tool": "task_done", "id": 3, "result": "all tests passed" }
+
+6. task_list — list all tasks
+   { "tool": "task_list" }
+
+7. load_skill — load a skill by name into context (model uses this for auto-detection)
+   { "tool": "load_skill", "name": "git" }
+
+Rules:
+- You MUST wait for the tool result before continuing.
+- One tool call per fenced block.
+- If a tool is denied, work around it or explain why you cannot proceed.
+- After completing all tool calls needed for a task, summarise what was done.
+"""
+
+
+def run_tool(call: dict) -> str:
+    """Dispatch a parsed tool call. Returns a result string for the model."""
+    tool = call.get("tool", "")
+
+    # ── shell ──────────────────────────────────────────────────────────────
+    if tool == "shell":
+        cmd = call.get("cmd", "").strip()
+        if not cmd:
+            return "[error: shell tool called with empty cmd]"
+
+        key = _perm_key_for_shell(cmd)
+        if not check_permission(key, f"shell: {cmd}"):
+            return f"[denied: {cmd}]"
+
+        print(f"\n  $ {cmd}")
+        try:
+            proc = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, timeout=60
+            )
+            output = proc.stdout + proc.stderr
+            if not output.strip():
+                output = "(no output)"
+            # Truncate very long output
+            if len(output) > 4000:
+                output = output[:4000] + "\n... [truncated]"
+            print(output)
+            return output
+        except subprocess.TimeoutExpired:
+            return "[error: command timed out after 60s]"
+        except Exception as e:
+            return f"[error: {e}]"
+
+    # ── write_file ─────────────────────────────────────────────────────────
+    elif tool == "write_file":
+        path = call.get("path", "").strip()
+        content = call.get("content", "")
+        if not path:
+            return "[error: write_file called with no path]"
+
+        key = "write_file"
+        if not check_permission(key, f"write file: {path}"):
+            return f"[denied: write {path}]"
+
+        try:
+            p = Path(path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+            print(f"\n  [wrote {p} ({len(content)} bytes)]")
+            return f"[wrote {path} successfully ({len(content)} bytes)]"
+        except Exception as e:
+            return f"[error writing {path}: {e}]"
+
+    # ── read_file ──────────────────────────────────────────────────────────
+    elif tool == "read_file":
+        path = call.get("path", "").strip()
+        if not path:
+            return "[error: read_file called with no path]"
+        p = Path(path)
+        if not p.exists():
+            return f"[error: {path} not found]"
+        try:
+            content = p.read_text(encoding="utf-8", errors="replace")
+            if len(content) > 8000:
+                content = content[:8000] + "\n... [truncated]"
+            return content
+        except Exception as e:
+            return f"[error reading {path}: {e}]"
+
+    # ── task_add ───────────────────────────────────────────────────────────
+    elif tool == "task_add":
+        title  = call.get("title", "untitled")
+        detail = call.get("detail", "")
+        new_id = task_add(title, detail)
+        return f"[task #{new_id} added: {title}]"
+
+    # ── task_done ──────────────────────────────────────────────────────────
+    elif tool == "task_done":
+        tid    = int(call.get("id", 0))
+        result = call.get("result", "")
+        task_done(tid, result)
+        return f"[task #{tid} marked done]"
+
+    # ── task_list ──────────────────────────────────────────────────────────
+    elif tool == "task_list":
+        tasks = task_list_all()
+        if not tasks:
+            return "(no tasks)"
+        lines = []
+        for t in tasks:
+            lines.append(f"#{t['id']} [{t['status']}] {t['title']}")
+            if t["detail"]:
+                lines.append(f"   {t['detail']}")
+            if t["result"]:
+                lines.append(f"   → {t['result']}")
+        return "\n".join(lines)
+
+    # ── load_skill ────────────────────────────────────────────────────────
+    elif tool == "load_skill":
+        name = call.get("name", "").strip()
+        if not name:
+            return "[error: load_skill called with no name]"
+        skill = find_skill(name)
+        if skill is None:
+            return f"[error: skill {name!r} not found in {SKILLS_DIR}]"
+        return format_skill_block(skill)
+
+    else:
+        return f"[error: unknown tool '{tool}']"
+
+
+_TOOL_BLOCK_RE = re.compile(r"~~~tool\s*(\{.*?\})\s*~~~", re.DOTALL)
+
+
+def extract_tool_calls(text: str) -> list[tuple[str, dict]]:
+    """
+    Find all ~~~tool { ... } ~~~ blocks in text.
+    Returns list of (raw_block, parsed_dict).
+    """
+    results = []
+    for m in _TOOL_BLOCK_RE.finditer(text):
+        raw = m.group(0)
+        try:
+            parsed = json.loads(m.group(1))
+            results.append((raw, parsed))
+        except json.JSONDecodeError as e:
+            results.append((raw, {"tool": "__parse_error__", "error": str(e)}))
+    return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# @ file picker
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _fzf_available() -> bool:
+    return shutil.which("fzf") is not None
+
+
+def _pick_file_fzf(prefix: str = "") -> str | None:
+    cmd = ["fzf", "--height=40%", "--layout=reverse", "--border",
+           "--prompt=📎 file: ", "--preview=cat {}"]
+    if prefix:
+        cmd += ["--query", prefix]
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
+        return result.stdout.strip() or None if result.returncode == 0 else None
+    except FileNotFoundError:
+        return None
+
+
+def _pick_file_fallback(prefix: str = "") -> str | None:
+    try:
+        default = f" [{prefix}]" if prefix else ""
+        path = input(f"  File path{default}: ").strip() or prefix
+        return path or None
+    except (EOFError, KeyboardInterrupt):
+        return None
+
+
+def pick_file(prefix: str = "") -> str | None:
+    if _fzf_available():
+        return _pick_file_fzf(prefix)
+    if prefix == "":
+        print("  [fzf not found — using plain prompt]")
+    return _pick_file_fallback(prefix)
+
+
+def expand_at_refs(raw: str) -> tuple[str, list[Path]]:
+    result_parts: list[str] = []
+    resolved:     list[Path] = []
+    i = 0
+    while i < len(raw):
+        ch = raw[i]
+        if ch != "@":
+            result_parts.append(ch)
+            i += 1
+            continue
+        if i + 1 < len(raw) and raw[i + 1] == "@":
+            result_parts.append("@")
+            i += 2
+            continue
+        j = i + 1
+        while j < len(raw) and not raw[j].isspace():
+            j += 1
+        hint = raw[i + 1: j]
+        print()
+        chosen = pick_file(hint)
+        if chosen is None:
+            result_parts.append(raw[i:j])
+            i = j
+            continue
+        p = Path(chosen)
+        if not p.exists():
+            print(f"  [warning: {chosen!r} not found, skipping]")
+            result_parts.append(raw[i:j])
+            i = j
+            continue
+        resolved.append(p)
+        result_parts.append(chosen)
+        i = j
+    return "".join(result_parts), resolved
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# File helpers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def read_file_safe(path: str) -> str:
+    p = Path(path)
+    if not p.exists():
+        sys.exit(f"Error: file not found: {path}")
+    return p.read_text(encoding="utf-8", errors="replace")
+
+
+def write_file_safe(path: str, content: str) -> None:
+    Path(path).write_text(content, encoding="utf-8")
+    print(f"\n[saved → {path}]")
+
+
+def format_file_block(path: Path) -> str:
+    content = path.read_text(encoding="utf-8", errors="replace")
+    return f"--- FILE: {path} ---\n{content}\n--- END: {path} ---"
+
+
+def build_user_message(text: str, inline_paths: list[Path]) -> str:
+    if not inline_paths:
+        return text
+    blocks = "\n\n".join(format_file_block(p) for p in inline_paths)
+    return f"{text}\n\n{blocks}"
+
+
+def build_system_prompt(file_content: str | None, tools: bool,
+                        active_skills: list[dict] | None = None) -> str:
+    parts = []
+    if tools:
+        all_skills = load_all_skills()
+        tool_prompt = TOOLS_SYSTEM_PROMPT.strip()
+        index = skills_index_prompt(all_skills)
+        if index:
+            tool_prompt += "\n\n" + index
+        parts.append(tool_prompt)
+    # Inject any already-active skills (loaded via @skill: or auto-detect)
+    if active_skills:
+        for skill in active_skills:
+            parts.append(format_skill_block(skill))
+    if file_content:
+        parts.append(
+            "The user has provided the following file content.\n\n"
+            "--- FILE CONTENT ---\n"
+            f"{file_content}\n"
+            "--- END OF FILE ---"
+        )
+    return "\n\n".join(parts) if parts else ""
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Ollama streaming with tool-call loop
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _do_stream(messages: list[dict]) -> str:
+    """One raw streaming request → full text response."""
+    data = json.dumps({"model": MODEL, "messages": messages, "stream": True}).encode()
+    req  = urllib.request.Request(
+        f"{OLLAMA_URL}/chat", data=data,
+        headers={"Content-Type": "application/json"}, method="POST",
+    )
+
+    full: list[str] = []
+    spinner = Spinner()
+    spinner.start()
+    first = True
+
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            for raw_line in resp:
+                line = raw_line.decode().strip()
+                if not line:
+                    continue
+                try:
+                    chunk = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                token = chunk.get("message", {}).get("content", "")
+                if token:
+                    if first:
+                        spinner.stop()
+                        first = False
+                    print(token, end="", flush=True)
+                    full.append(token)
+                if chunk.get("done"):
+                    break
+    except urllib.error.URLError as e:
+        spinner.stop()
+        sys.exit(
+            f"Error: cannot reach Ollama at {OLLAMA_URL}\n"
+            f"  Make sure `ollama serve` is running.\n  Detail: {e}"
+        )
+    finally:
+        if not spinner._stop_event.is_set():
+            spinner.stop()
+
+    print()
+    return "".join(full)
+
+
+def stream_chat(messages: list[dict]) -> str:
+    """
+    Stream a response.  If the model emits tool calls, execute them and
+    feed results back, looping until the model produces a plain reply.
+    """
+    MAX_TOOL_ROUNDS = 20
+
+    for round_num in range(MAX_TOOL_ROUNDS):
+        reply = _do_stream(messages)
+        calls = extract_tool_calls(reply)
+
+        if not calls:
+            return reply   # plain response — we're done
+
+        # Execute each tool call and collect results
+        messages.append({"role": "assistant", "content": reply})
+
+        results_text_parts = []
+        for raw_block, call in calls:
+            if call.get("tool") == "__parse_error__":
+                result = f"[tool parse error: {call.get('error')}]"
+            else:
+                result = run_tool(call)
+            results_text_parts.append(
+                f"Tool result for `{call.get('tool', '?')}`:\n{result}"
+            )
+
+        tool_results = "\n\n".join(results_text_parts)
+        messages.append({"role": "user", "content": tool_results})
+        print(f"\n  [tool round {round_num + 1} complete — continuing…]\n")
+
+    return "[max tool rounds reached]"
+
+
+def ollama_request(endpoint: str, payload: dict) -> dict:
+    data = json.dumps(payload).encode()
+    req  = urllib.request.Request(
+        f"{OLLAMA_URL}/{endpoint}", data=data,
+        headers={"Content-Type": "application/json"}, method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            return json.loads(resp.read())
+    except urllib.error.URLError as e:
+        sys.exit(
+            f"Error: cannot reach Ollama at {OLLAMA_URL}\n"
+            f"  Make sure `ollama serve` is running.\n  Detail: {e}"
+        )
+
+
+def check_model() -> None:
+    try:
+        result = ollama_request("show", {"name": MODEL})
+        if "error" in result:
+            print(f"Warning: model '{MODEL}' may not be available. Run: ollama pull {MODEL}")
+    except SystemExit:
+        pass
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Skills  (~/.skills/)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Skill files live in ~/.skills/<name>.md and have a YAML-like frontmatter block:
+#
+#   ---
+#   name: git
+#   description: Git workflow preferences and commit conventions
+#   triggers: git, commit, branch, merge, rebase, push, pull request
+#   ---
+#
+#   ... free-form markdown instructions follow ...
+#
+# Activation:
+#   - Explicitly:    @skill:git  in any message
+#   - Auto-detect:   model is shown skill index at session start and decides
+#   - /skills        list all available skills
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import re as _re
+
+_FRONTMATTER_RE = _re.compile(
+    r"^---\s*\n(.*?)\n---\s*\n", _re.DOTALL
+)
+_FIELD_RE = _re.compile(r"^(\w+)\s*:\s*(.+)$", _re.MULTILINE)
+
+
+def _parse_skill(path: Path) -> dict | None:
+    """
+    Parse a skill file.  Returns a dict with keys:
+      name, description, triggers (list[str]), body (str), path
+    Returns None if the file has no valid frontmatter.
+    """
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+
+    m = _FRONTMATTER_RE.match(raw)
+    if not m:
+        return None
+
+    fields: dict[str, str] = {}
+    for fm in _FIELD_RE.finditer(m.group(1)):
+        fields[fm.group(1).strip().lower()] = fm.group(2).strip()
+
+    if "name" not in fields:
+        fields["name"] = path.stem
+
+    body = raw[m.end():]
+
+    triggers_raw = fields.get("triggers", "")
+    triggers = [t.strip().lower() for t in triggers_raw.split(",") if t.strip()]
+
+    return {
+        "name":        fields["name"],
+        "description": fields.get("description", "(no description)"),
+        "triggers":    triggers,
+        "body":        body.strip(),
+        "path":        path,
+    }
+
+
+def load_all_skills() -> list[dict]:
+    """Return parsed skill dicts for every valid .md in SKILLS_DIR."""
+    if not SKILLS_DIR.exists():
+        return []
+    skills = []
+    for p in sorted(SKILLS_DIR.glob("*.md")):
+        s = _parse_skill(p)
+        if s:
+            skills.append(s)
+    return skills
+
+
+def find_skill(name: str) -> dict | None:
+    """Look up a skill by its name field (case-insensitive)."""
+    needle = name.strip().lower()
+    for s in load_all_skills():
+        if s["name"].lower() == needle:
+            return s
+    return None
+
+
+def skills_index_prompt(skills: list[dict]) -> str:
+    """
+    A compact index injected into the system prompt so the model knows
+    what skills are available and can ask to load them via tool call.
+    """
+    if not skills:
+        return ""
+    lines = ["## Available skills (use `load_skill` tool to activate one)"]
+    for s in skills:
+        trigger_hint = f"  triggers: {', '.join(s['triggers'])}" if s["triggers"] else ""
+        lines.append(f"- **{s['name']}**: {s['description']}{trigger_hint}")
+    return "\n".join(lines)
+
+
+def format_skill_block(skill: dict) -> str:
+    return (
+        f"--- SKILL: {skill['name']} ---\n"
+        f"{skill['body']}\n"
+        f"--- END SKILL: {skill['name']} ---"
+    )
+
+
+def print_skills() -> None:
+    skills = load_all_skills()
+    if not skills:
+        print(f"  No skills found in {SKILLS_DIR}")
+        print(f"  Create a .md file there with ---frontmatter--- to add one.")
+        return
+    print(f"  Skills in {SKILLS_DIR}:")
+    for s in skills:
+        trig = ", ".join(s["triggers"]) if s["triggers"] else "—"
+        print(f"    {s['name']:<20} {s['description']}")
+        print(f"    {'':20} triggers: {trig}")
+    print()
+
+
+def expand_skill_refs(raw: str) -> tuple[str, list[dict]]:
+    """
+    Replace @skill:<name> tokens with the skill name (for readability)
+    and return the list of resolved skill dicts to be injected into context.
+    Unresolved @skill:x refs are left as-is with a warning.
+    """
+    pattern = _re.compile(r"@skill:(\S+)")
+    loaded: list[dict] = []
+    seen: set[str] = set()
+
+    def replace(m):
+        name = m.group(1)
+        if name in seen:
+            return f"@skill:{name}"
+        seen.add(name)
+        skill = find_skill(name)
+        if skill is None:
+            print(f"  [warning: skill {name!r} not found in {SKILLS_DIR}]")
+            return m.group(0)
+        loaded.append(skill)
+        return f"@skill:{name}"   # keep the token visible in transcript
+
+    expanded = pattern.sub(replace, raw)
+    return expanded, loaded
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Slash commands  (typed in interactive mode)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def handle_slash(cmd: str) -> bool:
+    """
+    Handle /commands typed by the user.
+    Returns True if handled (skip sending to model), False otherwise.
+    """
+    parts = cmd.strip().split(None, 1)
+    name  = parts[0].lower()
+    arg   = parts[1] if len(parts) > 1 else ""
+
+    if name == "/perms":
+        list_permissions()
+        return True
+
+    if name == "/revoke":
+        if arg:
+            revoke_permission(arg)
+        else:
+            print("Usage: /revoke <key>  e.g. /revoke shell:git commit")
+        return True
+
+    if name == "/tasks":
+        print()
+        print_tasks()
+        print()
+        return True
+
+    if name == "/skills":
+        print()
+        print_skills()
+        return True
+
+    if name == "/skill":
+        # /skill <name>  — print the full body of a named skill
+        if not arg:
+            print("  Usage: /skill <name>")
+        else:
+            s = find_skill(arg.strip())
+            if s:
+                print(f"\n  Skill: {s['name']} — {s['description']}")
+                print(f"  Triggers: {', '.join(s['triggers']) or '(none)'}")
+                print(f"  File: {s['path']}\n")
+                print(s['body'])
+                print()
+            else:
+                print(f"  [skill {arg.strip()!r} not found in {SKILLS_DIR}]")
+        return True
+
+    if name == "/help":
+        print("""
+  Slash commands:
+    /perms              — list current permissions
+    /revoke <key>       — revoke a permission (e.g. /revoke shell:ls)
+    /tasks              — show task queue
+    /skills             — list available skills (~/.skills/)
+    /skill <name>       — show a skill's full content
+    /help               — this message
+
+  @ references:
+    @filename           — attach a file (opens fzf)
+    @skill:name         — inject a skill into the conversation
+    @@                  — literal @
+""")
+        return True
+
+    return False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ^Z  (SIGTSTP) support
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _suspend_to_shell() -> None:
+    """
+    Cleanly suspend the process on ^Z and restore it when foregrounded again.
+
+    Steps:
+      1. Save the current terminal attributes (so readline state is not lost).
+      2. Print a newline so the shell prompt appears on a fresh line.
+      3. Reset the terminal to sane defaults (cooked mode) so the parent
+         shell is usable while we are suspended.
+      4. Send SIGSTOP to ourselves -- the kernel suspends us here.
+         Execution resumes at the line after os.kill() when the shell runs fg.
+      5. Restore our saved terminal attributes so readline works again.
+      6. Reprint the prompt so the user can see where they are.
+    """
+    fd = sys.stdin.fileno()
+    try:
+        saved = termios.tcgetattr(fd)
+    except termios.error:
+        # Not a real tty (e.g. piped input) -- just stop without fuss
+        os.kill(os.getpid(), signal.SIGSTOP)
+        return
+
+    try:
+        # Reset terminal to cooked mode for the parent shell
+        cooked = termios.tcgetattr(fd)
+        cooked[3] |= termios.ECHO | termios.ICANON   # lflags: re-enable echo + canonical
+        termios.tcsetattr(fd, termios.TCSADRAIN, cooked)
+
+        # Move to a clean line before suspending
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        # Actually suspend -- resumes here when `fg` is run
+        os.kill(os.getpid(), signal.SIGSTOP)
+
+        # Restore our terminal state
+        termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+
+        # Reprint the prompt so the user knows where they are
+        sys.stdout.write("You: ")
+        sys.stdout.flush()
+
+    except Exception:
+        # Never crash on signal-handling weirdness
+        try:
+            termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+        except Exception:
+            pass
+
+
+def _install_sigtstp(handler) -> None:
+    """Install SIGTSTP handler, silently skip on platforms that lack it (Windows)."""
+    if hasattr(signal, "SIGTSTP"):
+        signal.signal(signal.SIGTSTP, handler)
+
+
+def prompt_line(prompt_text: str = "You: ") -> str:
+    """
+    Drop-in replacement for input() that keeps ^Z working.
+    Reinstalls the SIGTSTP handler before every readline call because
+    some readline builds reset signal dispositions internally.
+    """
+    def _tstp_handler(signum, frame):
+        _suspend_to_shell()
+        # Reinstall after resume so ^Z keeps working next time
+        _install_sigtstp(_tstp_handler)
+
+    _install_sigtstp(_tstp_handler)
+
+    return input(prompt_text)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Modes
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def one_shot(prompt: str, file_content: str | None, output_path: str | None,
+             tools: bool) -> None:
+    expanded_prompt, skill_list = expand_skill_refs(prompt)
+    expanded_prompt, inline_paths = expand_at_refs(expanded_prompt)
+    sys_prompt = build_system_prompt(file_content, tools, active_skills=skill_list)
+    messages: list[dict] = []
+    if sys_prompt:
+        messages.append({"role": "system", "content": sys_prompt})
+
+    if skill_list:
+        print(f"[skills: {', '.join(s['name'] for s in skill_list)}]")
+    if inline_paths:
+        print(f"[attached: {', '.join(str(p) for p in inline_paths)}]")
+
+    messages.append({"role": "user", "content": build_user_message(expanded_prompt, inline_paths)})
+
+    print(f"\n{MODEL}: ", end="", flush=True)
+    reply = stream_chat(messages)
+
+    if output_path:
+        write_file_safe(output_path, reply)
+
+
+def interactive(file_content: str | None, output_path: str | None, tools: bool) -> None:
+    print(f"Chatting with {MODEL}. Type 'exit' or Ctrl-C to quit.")
+    print("Tips: use @ to attach a file, /help for commands")
+    if tools:
+        print("Tools: shell, write_file, read_file, task_add/done/list are available")
+    if not _fzf_available():
+        print("       (install fzf for fuzzy file picking)")
+    if file_content:
+        print("[File loaded via -f — model has access to its contents]")
+    if output_path:
+        print(f"[Conversation will be saved to {output_path} on exit]")
+    print()
+
+    sys_prompt = build_system_prompt(file_content, tools)
+    messages: list[dict] = []
+    if sys_prompt:
+        messages.append({"role": "system", "content": sys_prompt})
+
+    transcript_parts: list[str] = []
+
+    try:
+        while True:
+            try:
+                raw_input = prompt_line("You: ").strip()
+            except EOFError:
+                break
+
+            if not raw_input:
+                continue
+            if raw_input.lower() in {"exit", "quit", "q"}:
+                break
+            if raw_input.startswith("/") and handle_slash(raw_input[1:] if raw_input[1:2] != "/" else raw_input):
+                continue
+
+            # Expand @skill: refs first, then regular @ file refs
+            expanded, skill_list = expand_skill_refs(raw_input)
+            expanded, inline_paths = expand_at_refs(expanded)
+
+            if skill_list:
+                print(f"  [skills: {', '.join(s['name'] for s in skill_list)}]")
+            if inline_paths:
+                print(f"  [attached: {', '.join(str(p) for p in inline_paths)}]")
+
+            # Skills injected as a user-turn context block (keeps them out of
+            # the system prompt so they don't bloat every subsequent request)
+            skill_context = ""
+            if skill_list:
+                skill_context = "\n\n".join(format_skill_block(s) for s in skill_list) + "\n\n"
+
+            user_content = skill_context + build_user_message(expanded, inline_paths)
+            messages.append({"role": "user", "content": user_content})
+            transcript_parts.append(f"You: {expanded}")
+            if skill_list:
+                transcript_parts.append(f"  [skills: {', '.join(s['name'] for s in skill_list)}]")
+            if inline_paths:
+                transcript_parts.append(f"  [attached: {', '.join(str(p) for p in inline_paths)}]")
+
+            print(f"\n{MODEL}: ", end="", flush=True)
+            reply = stream_chat(messages)
+            print()
+
+            messages.append({"role": "assistant", "content": reply})
+            transcript_parts.append(f"{MODEL}: {reply}")
+
+    except KeyboardInterrupt:
+        print("\n[interrupted]")
+
+    if output_path and transcript_parts:
+        write_file_safe(output_path, "\n\n".join(transcript_parts))
+
+
+def run_tasks(tools: bool) -> None:
+    """
+    Autonomous mode: pop pending tasks from the DB and run each one.
+    The model gets a fresh context per task, with the task detail as its prompt.
+    """
+    pending = task_list_pending()
+    if not pending:
+        print("No pending tasks.")
+        return
+
+    print(f"Running {len(pending)} pending task(s)…\n")
+    sys_prompt = build_system_prompt(None, tools)
+
+    for task in pending:
+        tid   = task["id"]
+        title = task["title"]
+        detail = task["detail"] or title
+
+        print(f"─── Task #{tid}: {title} {'─' * max(0, 50 - len(title))}")
+        messages: list[dict] = []
+        if sys_prompt:
+            messages.append({"role": "system", "content": sys_prompt})
+        messages.append({"role": "user", "content": detail})
+
+        print(f"\n{MODEL}: ", end="", flush=True)
+        try:
+            reply = stream_chat(messages)
+            task_done(tid, reply[:200])
+            print(f"\n  [task #{tid} marked done]\n")
+        except Exception as e:
+            task_fail(tid, str(e))
+            print(f"\n  [task #{tid} failed: {e}]\n")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Entry point
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def main() -> None:
+    global MODEL, OLLAMA_URL
+
+    parser = argparse.ArgumentParser(
+        description=f"Chat with {MODEL} via Ollama.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    parser.add_argument("-p", "--prompt",   metavar="TEXT",
+                        help="One-shot prompt (omit for interactive mode)")
+    parser.add_argument("-f", "--file",     metavar="PATH",
+                        help="File to pass as context for the whole session")
+    parser.add_argument("-o", "--output",   metavar="PATH",
+                        help="File to write the response or transcript to")
+    parser.add_argument("--model",          metavar="NAME", default=MODEL,
+                        help=f"Ollama model (default: {MODEL})")
+    parser.add_argument("--base-url",       metavar="URL",  default=OLLAMA_URL,
+                        help=f"Ollama API base URL (default: {OLLAMA_URL})")
+    parser.add_argument("--no-tools",       action="store_true",
+                        help="Disable tool use (shell, write_file, task_*)")
+    parser.add_argument("--tasks",          action="store_true",
+                        help="Run all pending tasks from the task DB autonomously")
+    parser.add_argument("--add-task",       metavar="TITLE",
+                        help="Add a task to the queue and exit")
+    parser.add_argument("--list-tasks",     action="store_true",
+                        help="Print the task queue and exit")
+    parser.add_argument("--perms",          action="store_true",
+                        help="Show current permissions and exit")
+
+    args = parser.parse_args()
+
+    MODEL      = args.model
+    OLLAMA_URL = args.base_url.rstrip("/")
+    tools      = not args.no_tools
+
+    # ── quick sub-commands ────────────────────────────────────────────────
+    if args.perms:
+        list_permissions()
+        return
+
+    if args.list_tasks:
+        print_tasks()
+        return
+
+    if args.add_task:
+        new_id = task_add(args.add_task)
+        print(f"[task #{new_id} added: {args.add_task}]")
+        return
+
+    check_model()
+
+    file_content = read_file_safe(args.file) if args.file else None
+
+    if args.tasks:
+        run_tasks(tools)
+    elif args.prompt:
+        one_shot(args.prompt, file_content, args.output, tools)
+    else:
+        interactive(file_content, args.output, tools)
+
+
+if __name__ == "__main__":
+    main()
