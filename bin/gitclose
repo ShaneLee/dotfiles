@@ -2,12 +2,37 @@
 
 set -e
 
+# Get the current branch name, quoted for safety
 START_BRANCH=$(git branch --show)
 
+# Function to check out target, pull, and delete source branch
 function close_branch() {
-  git checkout $1 && git pull && git branch -d $2
+  local TARGET_BRANCH="$1"
+  local SOURCE_BRANCH="$2"
+  
+  echo "--- Attempting cleanup ---"
+  
+  # 1. Checkout the target branch
+  echo "Checking out target branch: $TARGET_BRANCH"
+  git checkout "$TARGET_BRANCH" || { echo "Error: Could not checkout $TARGET_BRANCH. Exiting."; exit 1; }
+  
+  # 2. Pull latest changes on target
+  echo "Pulling latest changes for $TARGET_BRANCH"
+  git pull || { echo "Error: Could not pull latest changes on $TARGET_BRANCH. Exiting."; exit 1; }
+  
+  # 3. Delete the source branch (-d is safe deletion)
+  echo "Attempting to delete source branch: $SOURCE_BRANCH"
+  git branch -d "$SOURCE_BRANCH"
 }
 
+# Use positional arguments and provide a safe default
 DEFAULT_BRANCH="${1:-develop}"
 
-[[ START_BRANCH != "develop" || START_BRANCH != "master" ]] && close_branch $DEFAULT_BRANCH $START_BRANCH || echo "Can't close protected branch"
+# Check if the START_BRANCH is neither develop nor master (using && for correct logic)
+if [[ "$START_BRANCH" != "develop" && "$START_BRANCH" != "master" ]]; then
+    echo "Detected branch $START_BRANCH. Proceeding with cleanup..."
+    # Call the function with quoted variables
+    close_branch "$DEFAULT_BRANCH" "$START_BRANCH"
+else
+    echo "Current branch ($START_BRANCH) is a protected branch (develop or master). Cleanup skipped."
+fi

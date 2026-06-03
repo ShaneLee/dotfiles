@@ -221,7 +221,7 @@ au FileType typescript nnoremap <leader>gt :call OpenAngularSpec()<cr>
 nnoremap <leader>g :silent grep<space>
 nnoremap <leader>gg :Goyo<cr>
 nnoremap <leader>s :%s/
-nnoremap <leader>w :Rg <C-R><C-W><cr>
+nnoremap <leader>w :SearchCurrentWord()<cr>
 vnoremap <leader>w y :Rg <C-R>0<cr>
 nnoremap <leader>c :cclose<cr>
 nnoremap <leader><cr> :call File_name_cmd()<cr>
@@ -255,6 +255,16 @@ else
   nnoremap <leader>f :Rg<space>
 endif
 
+
+function! SearchCurrentWord() 
+  let saved_iskeyword = $iskeyword
+  try
+    set iskeyword+=_
+    call RG(expand('<cword>'))
+  finally
+    let &iskeyword = saved_iskeyword
+  endtry
+endfunction
 
 " Copy whole file to clipboard
 nnoremap <leader>ac :%y+<cr>

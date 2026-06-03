@@ -166,6 +166,23 @@ function rename_shoot() {
    rename_convention
 }
 
+drone_video() {
+  if [ -z "$1" ]; then
+    echo "Usage: drone_video input_file [output_file]"
+    return 1
+  fi
+
+  input="$1"
+  output="${2:-${input%.*}_instagram.mp4}"
+
+  ffmpeg -i "$input" \
+    -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.1 \
+    -crf 20 -preset medium \
+    -c:a aac -b:a 128k \
+    -movflags +faststart \
+    "$output"
+}
+
 function fix_wifi() {
   sudo ifconfig en0 down && sudo ifconfig en0 up
 
