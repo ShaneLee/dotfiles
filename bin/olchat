@@ -73,6 +73,11 @@ OLLAMA_URL   = "http://localhost:11434/api"
 PERMS_FILE   = Path.home() / ".ollama_chat_perms.json"
 TASKS_DB     = Path.home() / ".ollama_chat_tasks.db"
 SKILLS_DIR   = Path.home() / ".bin/.skills"
+SESSIONS_DIR = Path.home() / ".ollama_chat_sessions"
+
+# Session saving state
+_session_file: Path | None = None
+_session_lock = threading.Lock()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -320,6 +325,50 @@ def print_tasks() -> None:
             print(f"         {t['detail'][:80]}")
         if t["result"]:
             print(f"         → {t['result'][:80]}")
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Session management (automatic background saves)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _init_session() -> None:
+    """Initialize a new session file with timestamp."""
+    global _session_file
+    SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    _session_file = SESSIONS_DIR / f"session_{timestamp}.md"
+    # Create empty file
+    _session_file.write_text("", encoding="utf-8")
+    print(f"  [session → {_session_file}]")
+
+
+def _save_to_session(message_type: str, content: str, metadata: list[str] | None = None) -> None:
+    """
+    Save a message (user or assistant) to the session file.
+    Runs immediately without threading to ensure data is written.
+    """
+    if _session_file is None:
+        return
+    
+    with _session_lock:
+        try:
+            existing = _session_file.read_text(encoding="utf-8", errors="replace")
+            
+            # Format the message block
+            block = f"{message_type}: {content}"
+            if metadata:
+                block = message_type + "\n" + "\n".join(f"  {m}" for m in metadata) + f"\n\n{content}"
+            
+            # Add separator between exchanges
+            if existing and not existing.endswith("\n\n"):
+                existing += "\n\n"
+            
+            new_content = existing + block + "\n"
+            _session_file.write_text(new_content, encoding="utf-8")
+        except Exception as e:
+            # Silently fail to not disrupt the chat
+            pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1148,6 +1197,10 @@ def one_shot(prompt: str, file_content: str | None, output_path: str | None,
 
 
 def interactive(file_content: str | None, output_path: str | None, tools: bool) -> None:
+    global _session_file
+    
+    _init_session()
+    
     print(f"Chatting with {Colors.wrap(MODEL, Colors.BOLD)}. Type 'exit' or Ctrl-C to quit.")
     print("Tips: use @ to attach files (fzf opens inline), /help for commands")
     if tools:
@@ -1204,6 +1257,14 @@ def interactive(file_content: str | None, output_path: str | None, tools: bool) 
             if inline_paths:
                 transcript_parts.append(f"  [attached: {', '.join(str(p) for p in inline_paths)}]")
 
+            # Save user prompt to session
+            metadata = []
+            if skill_list:
+                metadata.append(f"[skills: {', '.join(s['name'] for s in skill_list)}]")
+            if inline_paths:
+                metadata.append(f"[attached: {', '.join(str(p) for p in inline_paths)}]")
+            _save_to_session("You", expanded, metadata if metadata else None)
+
             print(f"\n{Colors.wrap(MODEL + ':', Colors.GREEN)} ", end="", flush=True)
             reply = stream_chat(messages)
             print()
@@ -1211,6 +1272,9 @@ def interactive(file_content: str | None, output_path: str | None, tools: bool) 
 
             messages.append({"role": "assistant", "content": reply})
             transcript_parts.append(f"{MODEL}: {reply}")
+            
+            # Save response to session
+            _save_to_session(f"{MODEL}", reply)
 
     except KeyboardInterrupt:
         print("\n[interrupted]")
@@ -1327,6 +1391,8 @@ def resume_session(directory: str, file_content: str | None, output_path: str | 
     Resume an interactive session from a directory's latest transcript.
     Loads previous messages and continues the conversation.
     """
+    global _session_file
+    
     transcript_path = find_latest_transcript(directory)
     if transcript_path is None:
         print(f"[No transcript found in {directory}]")
@@ -1334,6 +1400,8 @@ def resume_session(directory: str, file_content: str | None, output_path: str | 
         interactive(file_content, output_path, tools)
         return
     
+    # Use the existing transcript as the session file
+    _session_file = transcript_path
     print(f"[Resuming from {Colors.wrap(str(transcript_path), Colors.CYAN)}]\n")
     
     transcript_content = transcript_path.read_text(encoding="utf-8", errors="replace")
@@ -1408,6 +1476,14 @@ def resume_session(directory: str, file_content: str | None, output_path: str | 
             if inline_paths:
                 transcript_parts.append(f"  [attached: {', '.join(str(p) for p in inline_paths)}]")
             
+            # Save user prompt to session
+            metadata = []
+            if skill_list:
+                metadata.append(f"[skills: {', '.join(s['name'] for s in skill_list)}]")
+            if inline_paths:
+                metadata.append(f"[attached: {', '.join(str(p) for p in inline_paths)}]")
+            _save_to_session("You", expanded, metadata if metadata else None)
+            
             print(f"\n{Colors.wrap(MODEL + ':', Colors.GREEN)} ", end="", flush=True)
             reply = stream_chat(messages)
             print()
@@ -1415,6 +1491,9 @@ def resume_session(directory: str, file_content: str | None, output_path: str | 
             
             messages.append({"role": "assistant", "content": reply})
             transcript_parts.append(f"{MODEL}: {reply}")
+            
+            # Save response to session
+            _save_to_session(f"{MODEL}", reply)
     
     except KeyboardInterrupt:
         print("\n[interrupted]")
