@@ -4,3 +4,7 @@ tags
 wbin
 directories
 .secrets.zconfig
+.vim/bundle
+.vim/plugged
+.vim/undo
+.vim/.netrwhist
