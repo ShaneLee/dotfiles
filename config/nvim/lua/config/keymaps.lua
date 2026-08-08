@@ -151,3 +151,9 @@ map("n", "<leader>ts", "<cmd>set spell! spelllang=en_gb<CR>")
 -- Gitsigns: current-line blame
 map("n", "<leader>gb", function() require("gitsigns").toggle_current_line_blame() end)
 map("n", "<leader>gB", function() require("gitsigns").blame_line({ full = true }) end)
+
+-- DAP: breakpoint toggle. Currently only wired to an adapter for Java
+-- (see after/ftplugin/java.lua's jdtls.setup_dap()), used by <leader>td's
+-- "debug nearest test" there, but kept global so other languages can pick
+-- it up for free once they get an adapter.
+map("n", "<leader>b", function() require("dap").toggle_breakpoint() end)

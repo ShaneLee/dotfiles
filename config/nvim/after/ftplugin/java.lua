@@ -37,10 +37,31 @@ if vim.uv.fs_stat(lombok_jar) then
   table.insert(cmd, "--jvm-arg=-javaagent:" .. lombok_jar)
 end
 
+-- Debug adapter (Mason-installed, lua/plugins/jdtls.lua) + JUnit test-runner
+-- (fetched on demand, see util/java_test_bundles.lua for the version-pin
+-- story) bundles. Wiring these into init_options.bundles is what unlocks
+-- jdtls's own test_class()/test_nearest_method(): they compile and run
+-- tests directly against jdtls's incremental build output over DAP, the
+-- same "skip the build tool" path IntelliJ's test runner uses, instead of
+-- shelling out to `gradlew test` (see lua/config/functions.lua).
+local java_test_bundles = require("util.java_test_bundles")
+local bundles = {}
+vim.list_extend(bundles, vim.fn.glob(
+  vim.fn.stdpath("data") .. "/mason/packages/java-debug-adapter/extension/server/com.microsoft.java.debug.plugin-*.jar",
+  true, true
+))
+vim.list_extend(bundles, vim.fn.glob(
+  vim.fn.stdpath("data") .. "/java-test-bundles/" .. java_test_bundles.VERSION .. "/*.jar",
+  true, true
+))
+
 require("jdtls").start_or_attach({
   cmd = cmd,
   root_dir = root_dir,
   capabilities = require("cmp_nvim_lsp").default_capabilities(),
+  init_options = {
+    bundles = bundles,
+  },
   settings = {
     java = {
       signatureHelp = { enabled = true },
@@ -66,6 +87,34 @@ require("jdtls").start_or_attach({
       'private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));',
       { buffer = bufnr }
     )
+
+    -- Registers the "Launch"/"Attach" dap configurations jdtls needs and
+    -- points test_class()/test_nearest_method() at the bundles above.
+    -- Safe to call on every attach; jdtls dedupes internally.
+    require("jdtls").setup_dap({ hotcodereplace = "auto" })
+    require("jdtls.dap").setup_dap_main_class_configs()
+
+    -- Nearest-method running lives on <leader>t/<C-t> (functions.lua's
+    -- run_java_test_under_cursor()), which takes the same fast jdtls/DAP
+    -- path when available -- no separate binding needed for that case.
+    --
+    -- console = "internalConsole" routes output through DAP's own output
+    -- events into dap-repl, instead of java-debug's default of asking
+    -- nvim-dap to spawn a terminal via a runInTerminal reverse request --
+    -- which can time out outright ("Failed to launch debuggee in terminal
+    -- ... TimeoutException: timeout") depending on the terminal environment.
+    vim.keymap.set("n", "<leader>tc", function()
+      -- Opened explicitly: dap.listeners.after.event_initialized (see
+      -- lua/plugins/dap.lua) doesn't reliably fire for noDebug launches.
+      require("dap.repl").open()
+      require("jdtls").test_class({ config_overrides = { noDebug = true, console = "internalConsole" } })
+    end, { buffer = bufnr, desc = "Run Java test class" })
+
+    -- Debug variant: same path but leaves the debugger attached, so any
+    -- breakpoints set with <leader>b (see keymaps.lua) actually pause.
+    vim.keymap.set("n", "<leader>td", function()
+      require("jdtls").test_nearest_method({ config_overrides = { console = "internalConsole" } })
+    end, { buffer = bufnr, desc = "Debug nearest Java test" })
   end,
 })
 
