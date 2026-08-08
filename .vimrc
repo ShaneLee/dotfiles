@@ -87,7 +87,8 @@ let mapleader=","
 nnoremap <C-p> :Files<CR>
 
 " Leader Mappings
-nnoremap <leader><space> :nohlsearch<CR>
+nnoremap <leader>h :nohlsearch<CR>
+nnoremap <leader><space> :call FindFileByWord()<cr>
 nnoremap <leader>l mqggVGgq'q " Reformat entire file (uses formatprg)
 nnoremap <leader>g :silent grep<space>
 nnoremap <leader>gg :Goyo<cr>
@@ -255,6 +256,28 @@ function! SearchCurrentWord()
   finally
     let &iskeyword = saved_iskeyword
   endtry
+endfunction
+
+" --- Find File By Word Under Cursor ---
+function! FindFileByWord()
+  let saved_iskeyword = &iskeyword
+  set iskeyword+=_
+  let word = expand('<cword>')
+  let &iskeyword = saved_iskeyword
+
+  if word ==# ''
+    echo 'No word under cursor'
+    return
+  endif
+
+  let ext = expand('%:e')
+  let target = ext !=# '' ? word . '.' . ext : word
+
+  call fzf#run(fzf#wrap({
+  \ 'source': $FZF_DEFAULT_COMMAND,
+  \ 'sink': 'e',
+  \ 'options': ['--select-1', '--exit-0', '--query', target . '$']
+  \ }))
 endfunction
 
 " --- File Execution ---

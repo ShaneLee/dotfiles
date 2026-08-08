@@ -130,3 +130,5 @@ Temporary Items
 # Vim
 tags
 .swp
+
+**/.claude/settings.local.json
