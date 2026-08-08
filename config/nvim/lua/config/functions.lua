@@ -95,6 +95,40 @@ function M.find_file_by_word()
   require("telescope.builtin").find_files({ default_text = target })
 end
 
+--- List project files the same way Telescope/fzf does ($FZF_DEFAULT_COMMAND).
+local function project_file_list()
+  if not vim.env.FZF_DEFAULT_COMMAND then
+    return {}
+  end
+  local files = vim.fn.systemlist(vim.env.FZF_DEFAULT_COMMAND)
+  if vim.v.shell_error ~= 0 then
+    return {}
+  end
+  return files
+end
+
+--- Open the project file named exactly `target` (basename match). Single
+--- match: opens it directly. Multiple matches: opens a Telescope picker
+--- pre-filled so the user can disambiguate. Returns true if it navigated
+--- anywhere, false if there was no match at all.
+local function goto_single_file(target)
+  local matches = {}
+  for _, f in ipairs(project_file_list()) do
+    if vim.fn.fnamemodify(f, ":t") == target then
+      table.insert(matches, f)
+    end
+  end
+
+  if #matches == 1 then
+    vim.cmd("edit " .. vim.fn.fnameescape(matches[1]))
+    return true
+  elseif #matches > 1 then
+    require("telescope.builtin").find_files({ default_text = target })
+    return true
+  end
+  return false
+end
+
 --- Per-filetype "run current file" dispatch table (ported from File_cmd()).
 local executors = {
   py = "!python3 %",
@@ -156,6 +190,131 @@ function M.test_cmd()
   else
     vim.notify("No tester defined for filetype: " .. ext, vim.log.levels.WARN)
   end
+end
+
+--- Build the shell command to run a Java test, preferring a gradle
+--- wrapper/gradle over maven when the project has one (searched upward
+--- from the current file). method_name may be nil to run the whole class.
+local function java_test_command(class_name, method_name)
+  local gradlew = vim.fn.findfile("gradlew", ".;")
+  local gradle_build = gradlew == ""
+    and (vim.fn.findfile("build.gradle", ".;") ~= "" and vim.fn.findfile("build.gradle", ".;")
+      or vim.fn.findfile("build.gradle.kts", ".;"))
+    or ""
+
+  if gradlew ~= "" or gradle_build ~= "" then
+    local gradle_bin = gradlew ~= "" and vim.fn.fnamemodify(gradlew, ":p") or "gradle"
+    local pattern = method_name and ("*." .. class_name .. "." .. method_name) or ("*." .. class_name)
+    return string.format('!%s test --tests "%s"', gradle_bin, pattern)
+  end
+
+  if method_name then
+    return "!mvn test -Dcheckstyle.skip=true -Dtest=" .. class_name .. "#" .. method_name
+  end
+  return "!mvn test -Dcheckstyle.skip=true -Dtest=" .. class_name
+end
+
+--- Find the test function enclosing the cursor and run just that one;
+--- falls back to whole file/dir (test_cmd) if the cursor isn't inside a
+--- recognizable test. Ported from TestUnderCursor() in .vimrc, plus a
+--- neovim-only addition: if the current buffer is a source file (not a
+--- test file) and its test file exists in the project, jump there instead
+--- of trying to run tests against the source file.
+function M.test_under_cursor()
+  vim.cmd("write")
+  local ext = vim.fn.expand("%:e")
+
+  if ext == "py" then
+    local base = vim.fn.expand("%:t:r")
+    local is_test_file = base:match("^test_") or base:match("_test$")
+    if not is_test_file then
+      if goto_single_file("test_" .. base .. ".py") then
+        return
+      end
+      if goto_single_file(base .. "_test.py") then
+        return
+      end
+    end
+    M.run_python_test_under_cursor()
+  elseif ext == "java" then
+    local class_name = vim.fn.expand("%:t:r")
+    if not class_name:match("Test$") then
+      if goto_single_file(class_name .. "Test.java") then
+        return
+      end
+    end
+    M.run_java_test_under_cursor()
+  else
+    M.test_cmd()
+  end
+end
+
+function M.run_python_test_under_cursor()
+  local lnum = vim.fn.search([[^\s*def\s\+test_\w*\s*(]], "bcnW")
+  if lnum <= 0 then
+    vim.cmd("!pytest tests")
+    return
+  end
+
+  local def_line = vim.fn.getline(lnum)
+  local test_name = def_line:match("^%s*def%s+(test_%w*)%s*%(")
+  local indent = def_line:match("^%s*")
+  local class_name = nil
+
+  if indent ~= "" then
+    local clnum = lnum - 1
+    while clnum > 0 do
+      local cline = vim.fn.getline(clnum)
+      if cline:match("^%S") then
+        class_name = cline:match("^class%s+(%w+)")
+        break
+      end
+      clnum = clnum - 1
+    end
+  end
+
+  local target = vim.fn.expand("%")
+  if class_name then
+    target = target .. "::" .. class_name .. "::" .. test_name
+  else
+    target = target .. "::" .. test_name
+  end
+  vim.cmd("!pytest " .. vim.fn.shellescape(target))
+end
+
+function M.run_java_test_under_cursor()
+  local class_name = vim.fn.expand("%:t:r")
+  local lnum = vim.fn.line(".")
+  local method_name = nil
+
+  while lnum > 0 do
+    local line = vim.fn.getline(lnum)
+    -- matches optional access modifier/static, then "void name(" e.g.
+    -- "public void foo(" or "static void foo(" or "void foo("
+    local candidate = line:match("^%s*[%w%s]-void%s+([%w_]+)%s*%(")
+    if candidate then
+      local alnum = lnum - 1
+      local is_test = false
+      while alnum > 0 do
+        local aline = vim.fn.getline(alnum)
+        if aline:match("^%s*@Test") then
+          is_test = true
+          break
+        elseif aline:match("^%s*@") or aline:match("^%s*$") then
+          alnum = alnum - 1
+        else
+          break
+        end
+      end
+      if is_test then
+        method_name = candidate
+        break
+      end
+    end
+    lnum = lnum - 1
+  end
+
+  vim.cmd(java_test_command(class_name, method_name))
 end
 
 return M
