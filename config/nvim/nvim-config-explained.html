@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How This Neovim Config Works</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #1a1b26;
+    --bg-alt: #20222f;
+    --bg-code: #16161e;
+    --fg: #c0caf5;
+    --fg-dim: #9aa5ce;
+    --fg-bright: #ffffff;
+    --accent: #7aa2f7;
+    --accent2: #bb9af7;
+    --green: #9ece6a;
+    --orange: #e0af68;
+    --red: #f7768e;
+    --border: #292e42;
+    --sidebar-w: 280px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  code, pre, .mono {
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  nav.sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--bg-alt);
+    border-right: 1px solid var(--border);
+    padding: 24px 18px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  nav.sidebar h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg-dim);
+    margin: 20px 0 8px;
+  }
+  nav.sidebar h2:first-child { margin-top: 0; }
+  nav.sidebar ul { list-style: none; margin: 0; padding: 0; }
+  nav.sidebar li { margin: 2px 0; }
+  nav.sidebar a {
+    display: block;
+    color: var(--fg-dim);
+    font-size: 0.87rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  nav.sidebar a:hover { background: var(--bg); color: var(--fg-bright); text-decoration: none; }
+  nav.sidebar a.file { font-family: inherit; }
+  nav.sidebar code { font-size: 0.82rem; color: var(--accent); }
+
+  main {
+    flex: 1;
+    max-width: 900px;
+    padding: 48px 56px 120px;
+  }
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    nav.sidebar { width: 100%; height: auto; position: relative; }
+    main { padding: 32px 24px 80px; max-width: 100%; }
+  }
+
+  h1 { font-size: 2rem; color: var(--fg-bright); margin-bottom: 6px; }
+  .subtitle { color: var(--fg-dim); font-size: 1.05rem; margin-top: 0; margin-bottom: 40px; }
+
+  section.file {
+    margin: 64px 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  section.file:first-of-type { border-top: none; }
+
+  h2.filetitle {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: var(--fg-bright);
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+  h2.filetitle code {
+    font-size: 1rem;
+    background: var(--bg-code);
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: var(--green);
+  }
+  .file-purpose {
+    color: var(--fg-dim);
+    font-size: 0.95rem;
+    margin: 0 0 20px;
+  }
+
+  h3.fn {
+    font-size: 1.05rem;
+    color: var(--accent2);
+    margin: 30px 0 8px;
+  }
+  h3.fn code { color: var(--accent2); font-size: 1rem; }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    margin: 10px 0 16px;
+  }
+  pre code { color: var(--fg); }
+  .cm { color: #565f89; }        /* comment */
+  .kw { color: var(--accent2); } /* keyword */
+  .str { color: var(--green); }  /* string */
+  .fn-name { color: var(--accent); }
+  .num { color: var(--orange); }
+
+  p, li { color: var(--fg); }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  .callout {
+    background: var(--bg-alt);
+    border-left: 3px solid var(--accent);
+    padding: 10px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 0.92rem;
+  }
+  .callout.warn { border-left-color: var(--orange); }
+  .callout.gotcha { border-left-color: var(--red); }
+  .callout strong { color: var(--fg-bright); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 24px;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--fg-dim); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  td code, th code { color: var(--accent); background: var(--bg-code); padding: 1px 6px; border-radius: 4px; font-size: 0.85rem; }
+
+  .tree { font-size: 0.85rem; color: var(--fg-dim); }
+  .tree .d { color: var(--accent); }
+  .tree .f { color: var(--fg); }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(122,162,247,0.15);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .badge.plugin { background: rgba(187,154,247,0.15); color: var(--accent2); }
+  .badge.core { background: rgba(158,206,106,0.15); color: var(--green); }
+  .badge.ftplugin { background: rgba(224,175,104,0.15); color: var(--orange); }
+
+  footer {
+    color: var(--fg-dim);
+    font-size: 0.85rem;
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff;
+      --bg-alt: #f4f5fa;
+      --bg-code: #f1f2f8;
+      --fg: #2e3440;
+      --fg-dim: #5c6079;
+      --fg-bright: #16161e;
+      --border: #e2e4ee;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="sidebar">
+  <h2>Overview</h2>
+  <ul>
+    <li><a href="#intro">How it loads</a></li>
+    <li><a href="#tree">File tree</a></li>
+  </ul>
+
+  <h2>Core (lua/config)</h2>
+  <ul>
+    <li><a href="#init-lua">init.lua</a></li>
+    <li><a href="#options-lua">options.lua</a></li>
+    <li><a href="#lazy-lua">lazy.lua</a></li>
+    <li><a href="#keymaps-lua">keymaps.lua</a></li>
+    <li><a href="#commands-lua">commands.lua</a></li>
+    <li><a href="#autocmds-lua">autocmds.lua</a></li>
+    <li><a href="#functions-lua">functions.lua</a></li>
+  </ul>
+
+  <h2>Plugins (lua/plugins)</h2>
+  <ul>
+    <li><a href="#colorscheme-lua">colorscheme.lua</a></li>
+    <li><a href="#treesitter-lua">treesitter.lua</a></li>
+    <li><a href="#telescope-lua">telescope.lua</a></li>
+    <li><a href="#lsp-lua">lsp.lua</a></li>
+    <li><a href="#completion-lua">completion.lua</a></li>
+    <li><a href="#jdtls-lua">jdtls.lua</a></li>
+    <li><a href="#conform-lua">conform.lua</a></li>
+    <li><a href="#gitsigns-lua">gitsigns.lua</a></li>
+    <li><a href="#toggleterm-lua">toggleterm.lua</a></li>
+    <li><a href="#editing-lua">editing.lua</a></li>
+    <li><a href="#misc-lua">misc.lua</a></li>
+  </ul>
+
+  <h2>Language setup</h2>
+  <ul>
+    <li><a href="#jdtls-settings-lua">util/jdtls_settings.lua</a></li>
+    <li><a href="#ftplugin-java-lua">ftplugin/java.lua</a></li>
+    <li><a href="#ftplugin-python-lua">ftplugin/python.lua</a></li>
+  </ul>
+
+  <h2>Reference</h2>
+  <ul>
+    <li><a href="#keymap-table">Keymap cheat sheet</a></li>
+    <li><a href="#caveats">Known caveats</a></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>How This Neovim Config Works</h1>
+  <p class="subtitle">A file-by-file, function-by-function walkthrough of <code class="mono">~/.config/nvim</code> (really <code class="mono">~/.bin/dotfiles/config/nvim</code>, symlinked in).</p>
+
+  <section id="intro">
+    <h2 class="filetitle">How it loads</h2>
+    <p>Neovim starts by running <code>init.lua</code>. Everything else is pulled in from there, in this order:</p>
+    <pre><code><span class="num">1.</span> vim.loader.enable()      <span class="cm">-- byte-compile cache, speeds up every later require()</span>
+<span class="num">2.</span> config.options            <span class="cm">-- vim.opt settings, must run before plugins (sets mapleader)</span>
+<span class="num">3.</span> config.lazy               <span class="cm">-- bootstraps lazy.nvim, which loads lua/plugins/*.lua</span>
+<span class="num">4.</span> config.keymaps            <span class="cm">-- global keymaps (some lazy-require plugins on first use)</span>
+<span class="num">5.</span> config.commands           <span class="cm">-- :WQ / :Wq / :W / :Q / :Ggu user commands</span>
+<span class="num">6.</span> config.autocmds           <span class="cm">-- cursor-restore, filetype detection, new-file templates</span></code></pre>
+    <p>Separately, whenever you open a <code>.java</code> or <code>.py</code> file, Neovim automatically runs
+    <code>after/ftplugin/java.lua</code> or <code>after/ftplugin/python.lua</code> &mdash; this is a built-in
+    convention (any file under <code>after/ftplugin/&lt;filetype&gt;.lua</code> runs on <code>FileType &lt;filetype&gt;</code>),
+    not something wired up by hand anywhere.</p>
+    <div class="callout">
+      <strong>Why plugins live in <code>lua/plugins/</code> as separate files:</strong> <code>lazy.lua</code> calls
+      <code>require("lazy").setup({ spec = { { import = "plugins" } } })</code>. The <code>import = "plugins"</code>
+      line tells lazy.nvim to <code>require()</code> every module under <code>lua/plugins/</code> and treat whatever
+      table each one <code>return</code>s as a plugin spec. That's the entire mechanism &mdash; there's no manual
+      list of plugins anywhere to keep in sync.
+    </div>
+  </section>
+
+  <section id="tree">
+    <h2 class="filetitle">File tree</h2>
+    <pre class="tree"><code><span class="d">config/nvim/</span>
+├── <span class="f">init.lua</span>
+├── <span class="d">lua/</span>
+│   ├── <span class="d">config/</span>
+│   │   ├── <span class="f">options.lua</span>      <span class="cm"># vim.opt settings</span>
+│   │   ├── <span class="f">lazy.lua</span>         <span class="cm"># plugin manager bootstrap</span>
+│   │   ├── <span class="f">keymaps.lua</span>      <span class="cm"># global keymaps</span>
+│   │   ├── <span class="f">commands.lua</span>     <span class="cm"># user commands</span>
+│   │   ├── <span class="f">autocmds.lua</span>     <span class="cm"># autocommands</span>
+│   │   └── <span class="f">functions.lua</span>    <span class="cm"># ported vimscript helper functions</span>
+│   ├── <span class="d">plugins/</span>              <span class="cm"># one file per plugin, auto-loaded</span>
+│   │   ├── <span class="f">colorscheme.lua</span>
+│   │   ├── <span class="f">treesitter.lua</span>
+│   │   ├── <span class="f">telescope.lua</span>
+│   │   ├── <span class="f">lsp.lua</span>
+│   │   ├── <span class="f">completion.lua</span>
+│   │   ├── <span class="f">jdtls.lua</span>
+│   │   ├── <span class="f">conform.lua</span>
+│   │   ├── <span class="f">gitsigns.lua</span>
+│   │   ├── <span class="f">toggleterm.lua</span>
+│   │   ├── <span class="f">editing.lua</span>
+│   │   └── <span class="f">misc.lua</span>
+│   └── <span class="d">util/</span>
+│       └── <span class="f">jdtls_settings.lua</span> <span class="cm"># per-project java import-order overrides</span>
+└── <span class="d">after/ftplugin/</span>
+    ├── <span class="f">java.lua</span>            <span class="cm"># runs on FileType java (jdtls setup)</span>
+    └── <span class="f">python.lua</span>          <span class="cm"># runs on FileType python</span></code></pre>
+  </section>
+
+  <!-- ============ init.lua ============ -->
+  <section class="file" id="init-lua">
+    <h2 class="filetitle"><span class="badge core">core</span> <code>init.lua</code></h2>
+    <p class="file-purpose">The single entry point. Deliberately tiny &mdash; just enables the bytecode loader and requires the six <code>config.*</code> modules in the order that matters.</p>
+    <pre><code><span class="fn-name">vim.loader.enable()</span>
+
+<span class="kw">require</span>(<span class="str">"config.options"</span>)
+<span class="kw">require</span>(<span class="str">"config.lazy"</span>)
+<span class="kw">require</span>(<span class="str">"config.keymaps"</span>)
+<span class="kw">require</span>(<span class="str">"config.commands"</span>)
+<span class="kw">require</span>(<span class="str">"config.autocmds"</span>)</code></pre>
+    <ul>
+      <li><code>vim.loader.enable()</code> turns on Neovim's byte-compilation cache for all <code>require()</code>d Lua modules (both this config's and every plugin's). Every subsequent load reads compiled bytecode from <code>~/.local/state/nvim/luac</code> instead of re-parsing source &mdash; this is most of why cold startup is ~20ms instead of ~150-200ms.</li>
+      <li>Order matters: <code>options</code> must run before <code>lazy</code> because it sets <code>vim.g.mapleader</code>, and lazy.nvim needs the leader key defined before it evaluates any plugin spec that maps a leader-prefixed key.</li>
+      <li><code>keymaps</code> runs after <code>lazy</code> so that keymaps referencing plugin modules (e.g. <code>require("telescope.builtin")</code>) are defined once lazy.nvim's module-require hook is active.</li>
+    </ul>
+  </section>
+
+  <!-- ============ options.lua ============ -->
+  <section class="file" id="options-lua">
+    <h2 class="filetitle"><span class="badge core">core</span> <code>lua/config/options.lua</code></h2>
+    <p class="file-purpose">Everything from the old <code>.vimrc</code>'s <code>set</code> lines, translated to <code>vim.opt</code>, plus a few new settings for plugins added along the way.</p>
+
+    <h3 class="fn">Leader key</h3>
+    <pre><code><span class="fn-name">vim.g.mapleader</span> = <span class="str">","</span></code></pre>
+    <p>Set first, before anything else in the file, because it has to exist before any <code>&lt;leader&gt;...</code> keymap (here or in any plugin spec) is registered.</p>
+
+    <h3 class="fn">Basic editing settings</h3>
+    <pre><code><span class="kw">local</span> opt = vim.opt
+
+opt.hlsearch = <span class="kw">true</span>          <span class="cm">-- highlight all search matches</span>
+opt.incsearch = <span class="kw">true</span>         <span class="cm">-- highlight while typing the search</span>
+opt.number = <span class="kw">true</span>            <span class="cm">-- show absolute line number on current line</span>
+opt.relativenumber = <span class="kw">true</span>    <span class="cm">-- relative numbers on every other line (for 3j / 5k)</span>
+opt.cursorline = <span class="kw">true</span>         <span class="cm">-- highlight the current line</span>
+opt.tabstop = <span class="num">2</span>
+opt.softtabstop = <span class="num">2</span>
+opt.shiftwidth = <span class="num">2</span>
+opt.expandtab = <span class="kw">true</span>          <span class="cm">-- tabs insert spaces (2 by default; java/python override to 4)</span>
+opt.ttimeoutlen = <span class="num">0</span>          <span class="cm">-- no delay after Esc in key sequences</span>
+opt.smartcase = <span class="kw">true</span>
+opt.smartindent = <span class="kw">true</span>
+opt.ignorecase = <span class="kw">true</span>
+opt.complete:remove(<span class="str">"i"</span>)     <span class="cm">-- don't scan included files for keyword completion (slow)</span>
+opt.splitright = <span class="kw">true</span>         <span class="cm">-- vertical splits open to the right</span>
+opt.autoread = <span class="kw">true</span>           <span class="cm">-- reload a file if it changes on disk</span>
+opt.errorbells = <span class="kw">false</span>
+opt.shell = <span class="str">"/bin/zsh"</span>
+opt.iskeyword:remove(<span class="str">"_"</span>)    <span class="cm">-- underscore is a word *boundary*, not part of a word</span>
+opt.hidden = <span class="kw">true</span>             <span class="cm">-- allow switching buffers without saving first</span></code></pre>
+    <p>All ported 1:1 from the equivalent <code>set</code> lines in <code>.vimrc</code>. The two <code>:remove()</code>/<code>:append()</code>-style calls exist because <code>complete</code>, <code>iskeyword</code>, and <code>wildignore</code> are Vim's comma/flag-separated "list-like" options &mdash; <code>vim.opt</code> wraps them in an object with <code>:append()</code>/<code>:remove()</code>/<code>:prepend()</code> methods instead of requiring manual string concatenation.</p>
+
+    <h3 class="fn">Ripgrep / fzf environment</h3>
+    <pre><code>vim.env.RIPGREP_CONFIG_PATH = vim.env.HOME .. <span class="str">"/.ripgreprc"</span>
+vim.env.FZF_DEFAULT_COMMAND = <span class="str">'rg --files --hidden --glob "!.git"'</span>
+
+opt.wildignore:append({ <span class="cm">-- ~20 patterns: .git, target/, *.class, *.pyc, images, etc.</span>
+  <span class="str">"*/.git/*"</span>, <span class="str">"*/.hg/*"</span>, <span class="cm">-- ...</span>
+})
+
+<span class="kw">if</span> vim.fn.executable(<span class="str">"rg"</span>) == <span class="num">1</span> <span class="kw">then</span>
+  opt.grepprg = <span class="str">"rg --vimgrep --smart-case --hidden"</span>
+  opt.grepformat = <span class="str">"%f:%l:%c:%m"</span>
+<span class="kw">end</span></code></pre>
+    <p><code>FZF_DEFAULT_COMMAND</code> is kept even though Telescope replaced fzf.vim as the picker &mdash; it's harmless to leave set, and useful if you ever shell out to real <code>fzf</code> from a terminal. <code>grepprg</code>/<code>grepformat</code> back the plain <code>:grep</code> command used by <code>&lt;leader&gt;g</code> (see <a href="#keymaps-lua">keymaps.lua</a>), which populates the quickfix list rather than opening a picker &mdash; different workflow from Telescope's live_grep, kept for when you want quickfix-list navigation (<code>:cnext</code>/<code>:cprev</code>) instead of a picker.</p>
+
+    <h3 class="fn">Folding</h3>
+    <pre><code><span class="cm">-- Treesitter (lua/plugins/treesitter.lua) enables fold-by-expression, which
+-- defaults to closing every fold (functions included) as soon as a file
+-- opens. foldlevelstart=99 keeps everything open by default while leaving
+-- manual folding (za/zc/zo) fully working.</span>
+opt.foldlevelstart = <span class="num">99</span></code></pre>
+    <p>This exists specifically because treesitter's fold-by-expression (set up in <code>treesitter.lua</code>) closes every fold by default the moment a buffer with a fold method opens &mdash; <code>foldlevelstart</code> is Neovim's "how many fold levels to leave open when a window is first displayed" setting; 99 is comfortably higher than any realistic nesting depth, so everything starts expanded. <code>za</code>/<code>zc</code>/<code>zo</code> still work normally for manual folding.</p>
+
+    <h3 class="fn">Persistent undo</h3>
+    <pre><code><span class="kw">local</span> undodir = vim.fn.expand(<span class="str">"~/.vim/undo"</span>)
+vim.fn.mkdir(undodir, <span class="str">"p"</span>)
+opt.undodir = undodir
+opt.undofile = <span class="kw">true</span></code></pre>
+    <p>Same undo directory the old <code>.vimrc</code> used, so undo history from vim sessions carries over. <code>vim.fn.mkdir(..., "p")</code> is the Lua equivalent of the old <code>silent !mkdir -p</code> line &mdash; creates the directory (and parents) if it doesn't exist, without shelling out.</p>
+  </section>
+
+  <!-- ============ lazy.lua ============ -->
+  <section class="file" id="lazy-lua">
+    <h2 class="filetitle"><span class="badge core">core</span> <code>lua/config/lazy.lua</code></h2>
+    <p class="file-purpose">Bootstraps the <a href="https://github.com/folke/lazy.nvim" target="_blank">lazy.nvim</a> plugin manager and hands it the entire <code>lua/plugins/</code> directory.</p>
+    <pre><code><span class="kw">local</span> lazypath = vim.fn.stdpath(<span class="str">"data"</span>) .. <span class="str">"/lazy/lazy.nvim"</span>
+<span class="kw">if</span> <span class="kw">not</span> vim.uv.fs_stat(lazypath) <span class="kw">then</span>
+  vim.fn.system({
+    <span class="str">"git"</span>, <span class="str">"clone"</span>, <span class="str">"--filter=blob:none"</span>,
+    <span class="str">"https://github.com/folke/lazy.nvim.git"</span>,
+    <span class="str">"--branch=stable"</span>,
+    lazypath,
+  })
+<span class="kw">end</span>
+vim.opt.rtp:prepend(lazypath)</code></pre>
+    <p>Self-installing: if lazy.nvim itself isn't cloned yet (first run on a fresh machine), this shells out to <code>git clone</code> before requiring it. <code>--filter=blob:none</code> is a partial-clone flag that skips downloading file contents for history you don't need yet, keeping the clone fast. <code>vim.opt.rtp:prepend(lazypath)</code> puts lazy.nvim's own Lua files on the runtime path so <code>require("lazy")</code> below can find them.</p>
+    <pre><code><span class="kw">require</span>(<span class="str">"lazy"</span>).setup({
+  spec = { { import = <span class="str">"plugins"</span> } },
+  install = { colorscheme = { <span class="str">"tokyonight"</span> } },
+  checker = { enabled = <span class="kw">false</span> },
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        <span class="str">"gzip"</span>, <span class="str">"tarPlugin"</span>, <span class="str">"tohtml"</span>, <span class="str">"tutor"</span>, <span class="str">"zipPlugin"</span>,
+      },
+    },
+  },
+})</code></pre>
+    <ul>
+      <li><code>spec = { { import = "plugins" } }</code> is the whole plugin-discovery mechanism: it tells lazy.nvim to require every file in <code>lua/plugins/</code> and collect whatever spec table each one returns.</li>
+      <li><code>install.colorscheme</code> is only used as a fallback during the very first install, if lazy.nvim needs to pick something to display before plugins finish downloading.</li>
+      <li><code>checker.enabled = false</code> turns off lazy.nvim's background "check for plugin updates" polling &mdash; a small but real startup/idle-CPU cost with no benefit for a config you update manually.</li>
+      <li><code>disabled_plugins</code> removes a handful of Neovim's bundled runtime plugins (gzip file editing, tar/zip archive browsing, the built-in tutor, HTML conversion) that add to startup scanning cost and are never used here.</li>
+    </ul>
+  </section>
+
+  <!-- ============ keymaps.lua ============ -->
+  <section class="file" id="keymaps-lua">
+    <h2 class="filetitle"><span class="badge core">core</span> <code>lua/config/keymaps.lua</code></h2>
+    <p class="file-purpose">All global (non-filetype-specific) keymaps: ported 1:1 from <code>.vimrc</code>'s mapping section, plus everything added for LSP/Telescope/gitsigns/toggleterm.</p>
+
+    <h3 class="fn">Telescope-backed search (replaces fzf.vim)</h3>
+    <pre><code>map(<span class="str">"n"</span>, <span class="str">"&lt;C-p&gt;"</span>, <span class="kw">function</span>() <span class="kw">require</span>(<span class="str">"telescope.builtin"</span>).find_files() <span class="kw">end</span>)
+map(<span class="str">"n"</span>, <span class="str">"&lt;leader&gt;f"</span>, <span class="kw">function</span>() <span class="kw">require</span>(<span class="str">"telescope.builtin"</span>).live_grep() <span class="kw">end</span>)</code></pre>
+    <p>Each mapping is a closure that calls <code>require("telescope.builtin")</code> only when the key is actually pressed &mdash; not at config-load time. That matters for startup speed: because these <code>require()</code> calls are deferred, lazy.nvim never has to load Telescope until you actually press <code>&lt;C-p&gt;</code> or <code>&lt;leader&gt;f</code> for the first time (lazy.nvim hooks Lua's module loader so that requiring any of a lazy-loaded plugin's modules transparently triggers loading it).</p>
+
+    <h3 class="fn"><code>format_buffer()</code> &mdash; behind <code>&lt;leader&gt;l</code></h3>
+    <pre><code><span class="kw">local</span> <span class="kw">function</span> format_buffer()
+  <span class="kw">local</span> ft = vim.bo.filetype
+  <span class="kw">if</span> ft == <span class="str">"java"</span> <span class="kw">then</span>
+    vim.lsp.buf.format({ async = <span class="kw">false</span> })
+  <span class="kw">elseif</span> ft == <span class="str">"python"</span> <span class="kw">then</span>
+    <span class="kw">local</span> ok, conform = pcall(<span class="kw">require</span>, <span class="str">"conform"</span>)
+    <span class="kw">if</span> ok <span class="kw">then</span>
+      conform.format({ lsp_fallback = <span class="kw">false</span> })
+    <span class="kw">end</span>
+  <span class="kw">else</span>
+    vim.cmd(<span class="str">'normal! mqggVGgq`q'</span>)
+  <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+    <p>One key, three different formatting strategies depending on filetype:</p>
+    <ul>
+      <li><strong>Java:</strong> <code>vim.lsp.buf.format()</code> asks whatever LSP client is attached (jdtls) to format the buffer using Eclipse JDT's built-in formatter.</li>
+      <li><strong>Python:</strong> delegates to <a href="#conform-lua">conform.nvim</a>, which runs <code>black</code> over the buffer. <code>pcall</code> guards against conform not being loaded yet.</li>
+      <li><strong>Everything else:</strong> falls back to the exact macro the old <code>.vimrc</code> used for <code>&lt;leader&gt;l</code>: <code>mq</code> (set mark q) &rarr; <code>gg</code> (top) &rarr; <code>VG</code> (select to bottom) &rarr; <code>gq</code> (reformat via <code>formatprg</code>/<code>textwidth</code>) &rarr; <code>`q</code> (jump back to mark q). This preserves the old behavior for any filetype that isn't explicitly handled.</li>
+    </ul>
+
+    <h3 class="fn"><code>try_tag_jump(word)</code></h3>
+    <pre><code><span class="kw">local</span> <span class="kw">function</span> try_tag_jump(word)
+  <span class="kw">local</span> ok = pcall(vim.cmd, <span class="str">"tag "</span> .. word)
+  <span class="kw">if</span> <span class="kw">not</span> ok <span class="kw">then</span>
+    vim.notify(<span class="str">"No tag found for '"</span> .. word .. <span class="str">"', searching instead"</span>, vim.log.levels.INFO)
+    fn.search_current_word()
+  <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+    <p>A shared helper used by both ctags-fallback paths below. Plain <code>:tag &lt;word&gt;</code> throws <code>E426: Tag not found</code> when the word under the cursor isn't in the <code>tags</code> file &mdash; without <code>pcall</code>, that surfaced as a raw uncaught error rather than failing quietly. This matters most in <em>non</em>-Java files: there's no LSP to take the primary path, so this ctags fallback runs on <em>every</em> <code>&lt;leader&gt;]</code>/<code>&lt;C-]&gt;</code> press, and any word that isn't in the tags file (which is most words, most of the time) hit the raw error.</p>
+    <p>Rather than just swallowing the error, the failure case now chains into the exact same search <code>&lt;leader&gt;w</code> uses (<a href="#functions-lua"><code>fn.search_current_word()</code></a> &mdash; Telescope grep for the word, with the underscore-in-identifiers <code>iskeyword</code> handling that function already does). So a failed "jump to definition" still does something useful: it shows you every place that word actually appears in the project, which is often good enough to answer "where is this defined/used" even without a tags entry or an LSP. Verified: triggering the fallback opens a real <code>TelescopePrompt</code> buffer seeded with the word, for both <code>&lt;leader&gt;]</code> and <code>&lt;C-]&gt;</code>.</p>
+
+    <h3 class="fn"><code>goto_definition()</code> &mdash; behind <code>&lt;leader&gt;]</code></h3>
+    <pre><code><span class="kw">local</span> <span class="kw">function</span> goto_definition()
+  <span class="kw">if</span> #vim.lsp.get_clients({ bufnr = <span class="num">0</span> }) &gt; <span class="num">0</span> <span class="kw">then</span>
+    vim.lsp.buf.definition()
+  <span class="kw">else</span>
+    <span class="kw">local</span> word = vim.fn.expand(<span class="str">"&lt;cword&gt;"</span>)
+    <span class="kw">if</span> word ~= <span class="str">""</span> <span class="kw">then</span>
+      try_tag_jump(word)
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+<span class="kw">end</span>
+map(<span class="str">"n"</span>, <span class="str">"&lt;leader&gt;]"</span>, goto_definition)</code></pre>
+    <p><code>&lt;leader&gt;]</code> and <code>&lt;leader&gt;[</code> used to be buffer-prev/next in the old vimrc &mdash; redundant with <code>Tab</code>/<code>Shift-Tab</code>, which do the same thing. <code>&lt;leader&gt;]</code> was repurposed for go-to-definition: if any LSP client is attached to the current buffer, ask it where the symbol under the cursor is defined; otherwise fall back to Vim's native <code>:tag</code> command via <code>try_tag_jump</code> above, which looks the word up in the <code>tags</code> file generated by <code>ctags</code>. This means the same key works whether or not a language server is running.</p>
+
+    <h3 class="fn"><code>jump_back()</code> &mdash; behind <code>&lt;leader&gt;[</code></h3>
+    <pre><code><span class="kw">local</span> <span class="kw">function</span> jump_back()
+  <span class="kw">local</span> ok = pcall(vim.cmd, <span class="str">"pop"</span>)
+  <span class="kw">if</span> <span class="kw">not</span> ok <span class="kw">then</span>
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(<span class="str">"&lt;C-o&gt;"</span>, <span class="kw">true</span>, <span class="kw">false</span>, <span class="kw">true</span>), <span class="str">"n"</span>, <span class="kw">false</span>)
+  <span class="kw">end</span>
+<span class="kw">end</span>
+map(<span class="str">"n"</span>, <span class="str">"&lt;leader&gt;["</span>, jump_back)</code></pre>
+    <p>The companion to <code>&lt;leader&gt;]</code>: undoes the last jump. Every <code>:tag</code>-family jump (which is what both <code>vim.lsp.buf.definition()</code> and the plain <code>:tag</code> fallback ultimately push onto) records an entry on Vim's <em>tag stack</em>, separate from the regular jumplist. <code>:pop</code> pops the most recent entry off that stack and returns you to where you were before the jump &mdash; wrapped in <code>pcall</code> because <code>:pop</code> throws an error (<code>E555</code>/<code>E73</code>) if the stack is empty, which happens right at the start of a session before you've jumped anywhere yet. When that happens, it falls back to Neovim's plain jumplist instead (<code>&lt;C-o&gt;</code>, "older position"), fed via <code>nvim_feedkeys</code> since <code>&lt;C-o&gt;</code> isn't a <code>:</code> command that <code>vim.cmd</code> can run directly. Verified both paths: popping the tag stack after a <code>&lt;leader&gt;]</code> jump returns to the exact line the jump started from, and triggering it with an empty stack falls through cleanly with no error.</p>
+
+    <h3 class="fn"><code>goto_definition_or_references()</code> &mdash; behind <code>&lt;C-]&gt;</code></h3>
+    <p>A smarter variant of the same idea, added after testing showed plain go-to-definition alone wasn't enough &mdash; this one also answers "where is this used?":</p>
+    <pre><code><span class="kw">local</span> <span class="kw">function</span> goto_definition_or_references()
+  <span class="kw">local</span> clients = vim.lsp.get_clients({ bufnr = <span class="num">0</span> })
+  <span class="kw">if</span> #clients == <span class="num">0</span> <span class="kw">then</span>
+    <span class="cm">-- no LSP: plain ctags jump, same as &lt;leader&gt;]</span>
+    <span class="kw">local</span> word = vim.fn.expand(<span class="str">"&lt;cword&gt;"</span>)
+    <span class="kw">if</span> word ~= <span class="str">""</span> <span class="kw">then</span> try_tag_jump(word) <span class="kw">end</span>
+    <span class="kw">return</span>
+  <span class="kw">end</span>
+
+  <span class="kw">local</span> client = clients[<span class="num">1</span>]
+  <span class="kw">local</span> params = vim.lsp.util.make_position_params(<span class="num">0</span>, client.offset_encoding)
+  vim.lsp.buf_request(<span class="num">0</span>, <span class="str">"textDocument/definition"</span>, params, <span class="kw">function</span>(err, result)
+    <span class="kw">if</span> err <span class="kw">or</span> <span class="kw">not</span> result <span class="kw">or</span> vim.tbl_isempty(result) <span class="kw">then</span> <span class="kw">return</span> <span class="kw">end</span>
+
+    <span class="kw">local</span> target = result[<span class="num">1</span>] <span class="kw">or</span> result
+    <span class="kw">local</span> target_uri = target.uri <span class="kw">or</span> target.targetUri
+    <span class="kw">local</span> target_range = target.range <span class="kw">or</span> target.targetSelectionRange
+
+    <span class="kw">local</span> already_there = target_uri == vim.uri_from_bufnr(<span class="num">0</span>)
+      <span class="kw">and</span> target_range.start.line == vim.fn.line(<span class="str">"."</span>) - <span class="num">1</span>
+
+    <span class="kw">if</span> already_there <span class="kw">then</span>
+      <span class="kw">require</span>(<span class="str">"telescope.builtin"</span>).lsp_references()
+    <span class="kw">else</span>
+      vim.lsp.util.show_document(target, client.offset_encoding, { reuse_win = <span class="kw">true</span>, focus = <span class="kw">true</span> })
+    <span class="kw">end</span>
+  <span class="kw">end</span>)
+<span class="kw">end</span>
+map(<span class="str">"n"</span>, <span class="str">"&lt;C-]&gt;"</span>, goto_definition_or_references)</code></pre>
+    <p>Step by step:</p>
+    <ol>
+      <li>Send a raw <code>textDocument/definition</code> LSP request by hand (rather than the higher-level <code>vim.lsp.buf.definition()</code>), because the callback needs to inspect <em>where</em> the definition is before deciding what to do.</li>
+      <li>The result is a <code>Location</code> or <code>LocationLink</code> &mdash; the two shapes use different field names (<code>uri</code>/<code>range</code> vs. <code>targetUri</code>/<code>targetSelectionRange</code>), so both are checked with <code>or</code>.</li>
+      <li><strong>The key comparison:</strong> is the definition's file and line the same as where the cursor already is? If you pressed <code>&lt;C-]&gt;</code> while standing on a usage of a symbol, the definition is somewhere else &rarr; jump there. If you pressed it while already standing on the definition itself, jumping would be a no-op &mdash; so instead it opens a Telescope picker listing every place that symbol is referenced.</li>
+      <li>Jumping uses <code>vim.lsp.util.show_document(...)</code> rather than the older <code>jump_to_location()</code>, which Neovim 0.12 marked deprecated in favor of <code>show_document</code>.</li>
+    </ol>
+    <div class="callout">
+      <strong>Why not just always show references on a second press?</strong> Because "second press" isn't tracked state anywhere &mdash; this check is stateless and re-derived every single time from cursor position vs. definition location, which is simpler and can't get out of sync.
+    </div>
+
+    <h3 class="fn">Everything else</h3>
+    <p>The remaining mappings are either straight 1:1 ports of <code>.vimrc</code> bindings to Lua's <code>vim.keymap.set</code>, or thin wrappers calling a function from <a href="#functions-lua">functions.lua</a>:</p>
+    <table>
+      <tr><th>Key</th><th>Does</th></tr>
+      <tr><td><code>&lt;leader&gt;h</code></td><td>Clear search highlight</td></tr>
+      <tr><td><code>&lt;leader&gt;&lt;space&gt;</code></td><td><code>fn.find_file_by_word</code> &mdash; Telescope find_files seeded with the word under the cursor</td></tr>
+      <tr><td><code>&lt;leader&gt;g</code></td><td>Start an interactive <code>:grep</code> (quickfix-list based)</td></tr>
+      <tr><td><code>&lt;leader&gt;gg</code></td><td><code>:Goyo</code> (distraction-free mode)</td></tr>
+      <tr><td><code>&lt;leader&gt;w</code> (n/v)</td><td><code>fn.search_current_word</code> / <code>fn.search_visual_selection</code> &mdash; Telescope grep for the word/selection</td></tr>
+      <tr><td><code>&lt;leader&gt;c</code></td><td>Close the quickfix window</td></tr>
+      <tr><td><code>&lt;leader&gt;r</code> / <code>&lt;leader&gt;t</code></td><td><code>fn.file_cmd</code> / <code>fn.test_cmd</code> &mdash; per-filetype run/test dispatch</td></tr>
+      <tr><td><code>&lt;leader&gt;n</code></td><td><code>fn.rename_file</code></td></tr>
+      <tr><td><code>&lt;leader&gt;ac</code></td><td>Yank whole buffer to system clipboard</td></tr>
+      <tr><td><code>&lt;leader&gt;jq</code></td><td>Reformat buffer as JSON via <code>jq</code></td></tr>
+      <tr><td><code>&lt;leader&gt;nt</code> / <code>&lt;leader&gt;u</code></td><td><code>fn.insert_current_time</code> / <code>fn.insert_uuid(s)</code></td></tr>
+      <tr><td><code>&lt;leader&gt;ca</code></td><td><code>vim.lsp.buf.code_action()</code> &mdash; shows available fixes/refactors from any attached LSP</td></tr>
+      <tr><td><code>Tab</code> / <code>Shift-Tab</code></td><td>Previous / next buffer</td></tr>
+      <tr><td><code>&lt;C-h/j/k/l&gt;</code></td><td>Move between window splits</td></tr>
+      <tr><td>Arrow keys, <code>Q</code></td><td>Disabled (<code>&lt;Nop&gt;</code>)</td></tr>
+      <tr><td><code>jj</code> (insert)</td><td><code>&lt;Esc&gt;</code></td></tr>
+      <tr><td><code>&lt;leader&gt;gb</code> / <code>&lt;leader&gt;gB</code></td><td>gitsigns: toggle inline line-blame / show full commit popup</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ commands.lua ============ -->
+  <section class="file" id="commands-lua">
+    <h2 class="filetitle"><span class="badge core">core</span> <code>lua/config/commands.lua</code></h2>
+    <p class="file-purpose">Typo-tolerant <code>:command</code> aliases, straight from <code>.vimrc</code>.</p>
+    <pre><code><span class="kw">local</span> <span class="kw">function</span> alias(name, target)
+  vim.api.nvim_create_user_command(name, target, {})
+<span class="kw">end</span>
+
+alias(<span class="str">"WQ"</span>, <span class="str">"wq"</span>)
+alias(<span class="str">"Wq"</span>, <span class="str">"wq"</span>)
+alias(<span class="str">"W"</span>, <span class="str">"w"</span>)
+alias(<span class="str">"Q"</span>, <span class="str">"q"</span>)</code></pre>
+    <p>Catches the classic fat-fingered <code>:WQ</code>/<code>:Wq</code> when Shift is still held down from typing a capital letter earlier on the line.</p>
+    <pre><code>vim.api.nvim_create_user_command(<span class="str">"Ggu"</span>, <span class="kw">function</span>(opts)
+  vim.cmd(<span class="str">'!zsh -c "source ~/.zshrc && ggu '</span> .. (opts.args ~= <span class="str">""</span> <span class="kw">and</span> opts.args <span class="kw">or</span> <span class="str">""</span>) .. <span class="str">'"'</span>)
+<span class="kw">end</span>, { nargs = <span class="str">"?"</span> })</code></pre>
+    <p><code>:Ggu [n]</code> shells out to a <code>ggu</code> zsh function (defined in <code>~/.zshrc</code>, generates UUIDs) and dumps the output straight into the command output. Sources <code>.zshrc</code> explicitly because <code>!</code> shell-outs don't load your interactive shell config by default.</p>
+    <pre><code>vim.keymap.set(<span class="str">"c"</span>, <span class="str">"%%"</span>, <span class="kw">function</span>()
+  <span class="kw">return</span> vim.fn.expand(<span class="str">"%:h"</span>) .. <span class="str">"/"</span>
+<span class="kw">end</span>, { expr = <span class="kw">true</span> })</code></pre>
+    <p>In command-line mode, typing <code>%%</code> expands to the current file's directory. Handy for e.g. <code>:e %%</code> to open a file browser in the same directory as the file you're editing.</p>
+  </section>
+
+  <!-- ============ autocmds.lua ============ -->
+  <section class="file" id="autocmds-lua">
+    <h2 class="filetitle"><span class="badge core">core</span> <code>lua/config/autocmds.lua</code></h2>
+    <p class="file-purpose">Everything from the old <code>augroup MyVimrc</code>: quickfix-after-grep, cursor restore, filetype detection for a few extensions, and new-file templates.</p>
+    <pre><code><span class="kw">local</span> group = vim.api.nvim_create_augroup(<span class="str">"MyVimrc"</span>, { clear = <span class="kw">true</span> })</code></pre>
+    <p><code>clear = true</code> matters if this file ever gets re-sourced (e.g. via <code>&lt;leader&gt;rr</code>): it wipes any previously-registered autocmds in this group first, so re-running the file doesn't register the same autocmd twice.</p>
+
+    <h3 class="fn">Cursor restore</h3>
+    <pre><code>vim.api.nvim_create_autocmd(<span class="str">"BufReadPost"</span>, {
+  group = group,
+  callback = <span class="kw">function</span>()
+    <span class="kw">if</span> vim.bo.filetype:match(<span class="str">"commit"</span>) <span class="kw">then</span> <span class="kw">return</span> <span class="kw">end</span>
+    <span class="kw">local</span> mark = vim.fn.line(<span class="str">"'\""</span>)
+    <span class="kw">if</span> mark &gt; <span class="num">0</span> <span class="kw">and</span> mark &lt;= vim.fn.line(<span class="str">"$"</span>) <span class="kw">then</span>
+      vim.cmd(<span class="str">'normal! g`"'</span>)
+    <span class="kw">end</span>
+  <span class="kw">end</span>,
+})</code></pre>
+    <p>Every buffer gets a <code>'"</code> mark automatically, recording the cursor position from the last time it was closed. This jumps back to it on reopen, skipping commit-message buffers (where you always want to start at the top). The line-number bounds check (<code>mark &gt; 0 and mark &lt;= line("$")</code>) guards against a stale mark pointing past the end of a file that's since shrunk.</p>
+
+    <h3 class="fn">Filetype detection + templates</h3>
+    <pre><code><span class="kw">local</span> ft_patterns = {
+  { <span class="str">"*.feature"</span>, <span class="str">"cucumber"</span> }, { <span class="str">"*.zconfig"</span>, <span class="str">"zsh"</span> },
+  { <span class="str">"*.config"</span>, <span class="str">"sh"</span> },      { <span class="str">"*.ejs"</span>, <span class="str">"html"</span> },
+  { <span class="str">"*.cmd"</span>, <span class="str">"markdown"</span> },  { <span class="str">"*.j2"</span>, <span class="str">"yaml"</span> },
+}
+<span class="kw">for</span> _, entry <span class="kw">in</span> ipairs(ft_patterns) <span class="kw">do</span>
+  vim.api.nvim_create_autocmd({ <span class="str">"BufRead"</span>, <span class="str">"BufNewFile"</span> }, {
+    group = group, pattern = entry[<span class="num">1</span>], command = <span class="str">"setfiletype "</span> .. entry[<span class="num">2</span>],
+  })
+<span class="kw">end</span></code></pre>
+    <p>A data-driven loop instead of six separate <code>autocmd</code> lines &mdash; same effect as the original vimrc, just generated. Then two more autocmds prefill new <code>.sh</code>/<code>.py</code> files from skeleton templates in <code>~/.bin/dotfiles/skeletons/</code> (a shebang line, boilerplate, etc.) the moment you create one.</p>
+  </section>
+
+  <!-- ============ functions.lua ============ -->
+  <section class="file" id="functions-lua">
+    <h2 class="filetitle"><span class="badge core">core</span> <code>lua/config/functions.lua</code></h2>
+    <p class="file-purpose">Lua ports of every custom Vimscript function from the old <code>.vimrc</code>. Returns a table (<code>M</code>) of functions that <code>keymaps.lua</code> wires up to keys.</p>
+
+    <h3 class="fn"><code>M.insert_current_time()</code></h3>
+    <pre><code><span class="kw">function</span> M.insert_current_time()
+  <span class="kw">local</span> current_time = os.date(<span class="str">"!%Y-%m-%dT%H:%M:%SZ"</span>)
+  vim.fn.append(
+    vim.fn.line(<span class="str">"."</span>),
+    string.format(<span class="str">'private static final Instant NOW = Instant.parse("%s");'</span>, current_time)
+  )
+<span class="kw">end</span></code></pre>
+    <p>Bound to <code>&lt;leader&gt;nt</code>. Inserts a ready-to-paste Java <code>Instant</code> constant with the current UTC time &mdash; useful for fixed-clock test setup. <code>os.date("!...")</code> &mdash; the leading <code>!</code> forces UTC rather than local time.</p>
+
+    <h3 class="fn"><code>generate_uuids(count)</code>, <code>M.insert_uuid()</code>, <code>M.insert_uuids_visual()</code></h3>
+    <pre><code><span class="kw">local</span> <span class="kw">function</span> generate_uuids(count)
+  <span class="kw">local</span> out = vim.fn.system(string.format(<span class="str">'zsh -c "source ~/.zshrc && ggu %d"'</span>, count))
+  <span class="kw">local</span> uuids = {}
+  <span class="kw">for</span> line <span class="kw">in</span> out:gmatch(<span class="str">"[^\r\n]+"</span>) <span class="kw">do</span> table.insert(uuids, line) <span class="kw">end</span>
+  <span class="kw">return</span> uuids
+<span class="kw">end</span></code></pre>
+    <p>Shells out to the same <code>ggu</code> zsh function used by <code>:Ggu</code>, requesting <code>count</code> UUIDs at once, then splits the output into a Lua list by newline.</p>
+    <pre><code><span class="kw">function</span> M.insert_uuid()
+  <span class="kw">local</span> uuids = generate_uuids(<span class="num">1</span>)
+  <span class="kw">if</span> uuids[<span class="num">1</span>] <span class="kw">then</span> vim.api.nvim_put({ uuids[<span class="num">1</span>] }, <span class="str">"c"</span>, <span class="kw">true</span>, <span class="kw">true</span>) <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+    <p>Normal-mode <code>&lt;leader&gt;u</code>: generates one UUID and inserts it at the cursor (<code>"c"</code> = characterwise put).</p>
+    <pre><code><span class="kw">function</span> M.insert_uuids_visual()
+  <span class="kw">local</span> start_pos = vim.fn.getpos(<span class="str">"'&lt;"</span>)
+  <span class="kw">local</span> end_pos = vim.fn.getpos(<span class="str">"'&gt;"</span>)
+  <span class="kw">local</span> start_line, start_col = start_pos[<span class="num">2</span>], start_pos[<span class="num">3</span>]
+  <span class="kw">local</span> num_lines = end_pos[<span class="num">2</span>] - start_line + <span class="num">1</span>
+
+  <span class="kw">local</span> uuids = generate_uuids(num_lines)
+  <span class="kw">for</span> i, uuid <span class="kw">in</span> ipairs(uuids) <span class="kw">do</span>
+    <span class="kw">local</span> lnum = start_line + i - <span class="num">1</span>
+    <span class="kw">local</span> line_content = vim.fn.getline(lnum)
+    <span class="kw">local</span> updated = line_content:sub(<span class="num">1</span>, start_col - <span class="num">1</span>) .. uuid .. line_content:sub(start_col)
+    vim.fn.setline(lnum, updated)
+  <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+    <p>Visual-mode <code>&lt;leader&gt;u</code>: for a selection spanning N lines, generates N UUIDs in one shell call (cheaper than N separate calls) and splices one into each line at the selection's starting column, using string slicing (<code>:sub(...)</code>) to insert without disturbing the rest of each line.</p>
+
+    <h3 class="fn"><code>M.rename_file()</code></h3>
+    <pre><code><span class="kw">function</span> M.rename_file()
+  <span class="kw">local</span> old_name = vim.fn.expand(<span class="str">"%"</span>)
+  <span class="kw">local</span> new_name = vim.fn.input(<span class="str">"New file name: "</span>, old_name, <span class="str">"file"</span>)
+  <span class="kw">if</span> new_name ~= <span class="str">""</span> <span class="kw">and</span> new_name ~= old_name <span class="kw">then</span>
+    vim.cmd(<span class="str">"saveas "</span> .. vim.fn.fnameescape(new_name))
+    vim.fn.delete(old_name)
+    vim.cmd(<span class="str">"redraw!"</span>)
+  <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+    <p>Bound to <code>&lt;leader&gt;n</code>. Prompts for a new name (pre-filled with the current one, with filename completion via the <code>"file"</code> completion type), saves the buffer under the new name, then deletes the old file from disk. <code>fnameescape</code> guards against spaces/special characters breaking the <code>:saveas</code> command.</p>
+
+    <h3 class="fn"><code>M.search_current_word()</code> / <code>M.search_visual_selection()</code></h3>
+    <pre><code><span class="kw">function</span> M.search_current_word()
+  <span class="kw">local</span> saved_iskeyword = vim.bo.iskeyword
+  vim.bo.iskeyword = vim.bo.iskeyword .. <span class="str">",_"</span>
+  <span class="kw">local</span> word = vim.fn.expand(<span class="str">"&lt;cword&gt;"</span>)
+  vim.bo.iskeyword = saved_iskeyword
+
+  <span class="kw">require</span>(<span class="str">"telescope.builtin"</span>).grep_string({ search = word })
+<span class="kw">end</span></code></pre>
+    <p>Recall that <code>options.lua</code> globally removes <code>_</code> from <code>iskeyword</code> (so <code>_</code> acts as a word boundary for normal word-motion commands like <code>w</code>/<code>e</code>). That's usually what you want, but not here: if the cursor is on <code>get_user_id</code>, a search should grab the whole identifier, not just <code>get</code>. So this function temporarily adds <code>_</code> back to <code>iskeyword</code>, captures the full word under the cursor with <code>expand("&lt;cword&gt;")</code>, restores the original setting, then hands the full word to Telescope's <code>grep_string</code>.</p>
+    <p><code>M.search_visual_selection()</code> does the same job for a visual selection instead of a single word &mdash; it yanks the selection into a scratch register (<code>"v"</code>, saving/restoring its previous contents) to read out the selected text, then greps for that.</p>
+
+    <h3 class="fn"><code>M.find_file_by_word()</code></h3>
+    <p>Behind <code>&lt;leader&gt;&lt;space&gt;</code>. Same <code>iskeyword</code> trick as above to get the full word under the cursor, then builds a search target from it: <code>word.ext</code> using the <em>current</em> buffer's extension (e.g. standing in a <code>.ts</code> file on the word <code>UserService</code> searches for <code>UserService.ts</code>). Useful for jumping between a class and its same-named test/spec/implementation file. Falls through to Telescope's <code>find_files</code> with that as the initial query text.</p>
+
+    <h3 class="fn"><code>M.file_cmd()</code> / <code>M.file_name_cmd()</code> &mdash; behind <code>&lt;leader&gt;r</code> / <code>&lt;leader&gt;&lt;CR&gt;</code></h3>
+    <pre><code><span class="kw">local</span> executors = {
+  py = <span class="str">"!python3 %"</span>, js = <span class="str">"!node %"</span>, scala = <span class="str">"!scala %"</span>,
+  sh = <span class="str">"!chmod +x % &amp;&amp; ./%"</span>, [<span class="str">""</span>] = <span class="str">"!chmod +x % &amp;&amp; ./%"</span>,
+  cpp = <span class="str">"!g++ % &amp;&amp; ./a.out &amp;&amp; rm a.out"</span>, go = <span class="str">"!go run %"</span>,
+  rs = <span class="str">"!cargo run %"</span>, c = <span class="str">"!gcc % &amp;&amp; ./a.out &amp;&amp; rm a.out"</span>,
+  tcl = <span class="str">"!tclsh %"</span>, ts = <span class="str">"!tsc % &amp;&amp; node %:r.js &amp;&amp; rm %:r.js"</span>,
+  hs = <span class="str">"!ghc -o %:r % &amp;&amp; ./%:r &amp;&amp; rm %:r &amp;&amp; rm %:r.hi &amp;&amp; rm %:r.o"</span>,
+  md = <span class="str">"!glow %"</span>, cmd = <span class="str">"!glow %"</span>,
+}
+
+<span class="kw">function</span> M.file_cmd()
+  vim.cmd(<span class="str">"write"</span>)
+  <span class="kw">local</span> ext = vim.fn.expand(<span class="str">"%:e"</span>)
+
+  <span class="kw">if</span> ext == <span class="str">"java"</span> <span class="kw">then</span>
+    <span class="kw">if</span> vim.fn.expand(<span class="str">"%"</span>):lower() == <span class="str">"main.java"</span> <span class="kw">then</span>
+      vim.cmd(<span class="str">"!javac % &amp;&amp; java main &amp;&amp; rm *.class"</span>)
+    <span class="kw">else</span>
+      vim.cmd(<span class="str">"!mvn test -Dcheckstyle.skip=true -Dtest="</span> .. vim.fn.expand(<span class="str">"%:t:r"</span>) .. <span class="str">"Test"</span>)
+    <span class="kw">end</span>
+    <span class="kw">return</span>
+  <span class="kw">end</span>
+
+  <span class="kw">local</span> cmd = executors[ext]
+  <span class="kw">if</span> cmd <span class="kw">then</span> vim.cmd(cmd)
+  <span class="kw">else</span> vim.notify(<span class="str">"No executor defined for filetype: "</span> .. ext, vim.log.levels.WARN) <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+    <p>A lookup table maps file extension &rarr; a shell command to compile-and-run (or just run) the current file, using Vim's <code>%</code>/<code>%:r</code> filename modifiers so the command always refers to whatever file is open. Java gets special-cased outside the table because its behavior branches on the filename itself: a lone <code>main.java</code> gets compiled and run directly with <code>javac</code>/<code>java</code>; anything else is assumed to be a test class living in a Maven project, and gets run with <code>mvn test</code>, targeting just that one test class and skipping checkstyle (so a style nit doesn't block a quick local test run). <code>M.file_name_cmd()</code> is a narrower variant behind <code>&lt;leader&gt;&lt;CR&gt;</code> that only knows how to run <code>python3 main.py</code>.</p>
+
+    <h3 class="fn"><code>M.test_cmd()</code> &mdash; behind <code>&lt;leader&gt;t</code></h3>
+    <p>Same dispatch-table pattern as <code>file_cmd</code>, just for test runners: <code>pytest tests</code> for Python, <code>go test</code> for Go.</p>
+  </section>
+
+  <!-- ============ colorscheme.lua ============ -->
+  <section class="file" id="colorscheme-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/colorscheme.lua</code></h2>
+    <p class="file-purpose"><a href="https://github.com/AlexvZyl/nordic.nvim" target="_blank">nordic.nvim</a>. The only plugin loaded eagerly (<code>lazy = false</code>) &mdash; everything else is deferred, but colors need to be in place before the first frame renders or you'd see a flash of default colors.</p>
+    <pre><code><span class="kw">return</span> {
+  <span class="str">"AlexvZyl/nordic.nvim"</span>,
+  lazy = <span class="kw">false</span>,
+  priority = <span class="num">1000</span>,
+  config = <span class="kw">function</span>()
+    <span class="kw">require</span>(<span class="str">"nordic"</span>).load()
+  <span class="kw">end</span>,
+}</code></pre>
+    <p><code>priority = 1000</code> tells lazy.nvim to load this before any other eagerly-loaded plugin, for the same flash-of-unstyled-content reason. <code>require("nordic").load()</code> is this plugin's own apply function &mdash; unlike most colorschemes it isn't applied via the generic <code>vim.cmd.colorscheme(...)</code>, it has its own loader that also wires up terminal colors and a few UI integrations. (This has been through two earlier picks in the same session &mdash; <code>gruvbox.nvim</code> first, matching an old iTerm2 profile, then <code>tokyonight.nvim</code>, before landing here.)</p>
+  </section>
+
+  <!-- ============ treesitter.lua ============ -->
+  <section class="file" id="treesitter-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/treesitter.lua</code></h2>
+    <p class="file-purpose">Syntax highlighting, indentation, and folding, all driven by real parse trees instead of regex.</p>
+    <div class="callout warn">
+      <strong>Note on the API used here:</strong> nvim-treesitter's <code>main</code> branch (the actively-developed one as of this writing) rewrote its API &mdash; the old <code>require("nvim-treesitter.configs").setup({...})</code> pattern you'll see in older tutorials no longer exists on this branch. This file uses the current API: <code>.setup()</code> + <code>.install()</code>, plus an explicit <code>vim.treesitter.start()</code> call per filetype.
+    </div>
+    <pre><code><span class="kw">local</span> parsers = {
+  <span class="str">"java"</span>, <span class="str">"python"</span>, <span class="str">"lua"</span>, <span class="str">"vim"</span>, <span class="str">"vimdoc"</span>, <span class="str">"bash"</span>,
+  <span class="str">"json"</span>, <span class="str">"yaml"</span>, <span class="str">"markdown"</span>, <span class="str">"typescript"</span>, <span class="str">"tsx"</span>, <span class="str">"javascript"</span>,
+}
+<span class="kw">local</span> filetypes = {
+  <span class="str">"java"</span>, <span class="str">"python"</span>, <span class="str">"lua"</span>, <span class="str">"vim"</span>, <span class="str">"help"</span>, <span class="str">"sh"</span>,
+  <span class="str">"json"</span>, <span class="str">"yaml"</span>, <span class="str">"markdown"</span>, <span class="str">"typescript"</span>, <span class="str">"typescriptreact"</span>, <span class="str">"javascript"</span>,
+}</code></pre>
+    <p>Two separate lists on purpose: <em>parser</em> names (what you pass to <code>:TSInstall</code>) don't always match <em>filetype</em> names (what <code>&amp;filetype</code> is actually set to). The <code>vimdoc</code> parser applies to <code>help</code>-filetype buffers; the <code>bash</code> parser applies to <code>sh</code>-filetype buffers; the <code>tsx</code> parser applies to <code>typescriptreact</code>-filetype buffers. Get this mapping wrong and treesitter silently never activates for that filetype.</p>
+    <pre><code>config = <span class="kw">function</span>()
+  <span class="kw">require</span>(<span class="str">"nvim-treesitter"</span>).setup()
+  <span class="kw">require</span>(<span class="str">"nvim-treesitter"</span>).install(parsers)
+
+  vim.api.nvim_create_autocmd(<span class="str">"FileType"</span>, {
+    pattern = filetypes,
+    callback = <span class="kw">function</span>(args)
+      <span class="cm">-- pcall guards the first-ever launch, where a parser may still be
+      -- downloading/compiling asynchronously from the install() call above.</span>
+      <span class="kw">if</span> pcall(vim.treesitter.start, args.buf) <span class="kw">then</span>
+        vim.wo.foldmethod = <span class="str">"expr"</span>
+        vim.wo.foldexpr = <span class="str">"v:lua.vim.treesitter.foldexpr()"</span>
+        vim.bo[args.buf].indentexpr = <span class="str">"v:lua.require('nvim-treesitter').indentexpr()"</span>
+      <span class="kw">end</span>
+    <span class="kw">end</span>,
+  })
+<span class="kw">end</span>,</code></pre>
+    <p><code>install(parsers)</code> kicks off (async) downloads/compiles for any parser not already installed &mdash; this needs the <code>tree-sitter</code> CLI on <code>$PATH</code> (installed separately via <code>brew install tree-sitter-cli</code>, since this API compiles grammars from source rather than fetching prebuilt binaries).</p>
+    <p>Highlighting isn't automatic once a parser exists &mdash; each buffer needs an explicit <code>vim.treesitter.start(bufnr)</code> call, which this does on <code>FileType</code>. Wrapped in <code>pcall</code> because on a completely fresh install, the very first time you open (say) a Python file, its parser might still be mid-download when this autocmd fires; <code>pcall</code> swallows that specific race instead of showing a scary error, and it self-heals the next time you open a file of that type. If it succeeds, the same callback also turns on treesitter-based folding and indentation for that buffer.</p>
+  </section>
+
+  <!-- ============ telescope.lua ============ -->
+  <section class="file" id="telescope-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/telescope.lua</code></h2>
+    <p class="file-purpose">Fuzzy finder/picker &mdash; the replacement for fzf.vim. Backs <code>&lt;C-p&gt;</code>, <code>&lt;leader&gt;f</code>, <code>&lt;leader&gt;w</code>, <code>&lt;leader&gt;&lt;space&gt;</code>, and the LSP references picker.</p>
+    <pre><code><span class="kw">return</span> {
+  <span class="str">"nvim-telescope/telescope.nvim"</span>,
+  dependencies = {
+    <span class="str">"nvim-lua/plenary.nvim"</span>,
+    { <span class="str">"nvim-telescope/telescope-fzf-native.nvim"</span>, build = <span class="str">"make"</span> },
+  },
+  cmd = <span class="str">"Telescope"</span>,
+  config = <span class="kw">function</span>()
+    <span class="kw">local</span> telescope = <span class="kw">require</span>(<span class="str">"telescope"</span>)
+    <span class="kw">local</span> actions = <span class="kw">require</span>(<span class="str">"telescope.actions"</span>)
+    telescope.setup({
+      defaults = {
+        vimgrep_arguments = {
+          <span class="str">"rg"</span>, <span class="str">"--color=never"</span>, <span class="str">"--no-heading"</span>, <span class="str">"--with-filename"</span>,
+          <span class="str">"--line-number"</span>, <span class="str">"--column"</span>, <span class="str">"--smart-case"</span>, <span class="str">"--hidden"</span>,
+          <span class="str">"--glob"</span>, <span class="str">"!.git"</span>,
+        },
+        <span class="cm">-- Telescope's own defaults leave &lt;C-j&gt;/&lt;C-k&gt; as a no-op / preview-scroll
+        -- in insert mode (only &lt;C-n&gt;/&lt;C-p&gt; and the arrows move the selection by
+        -- default) -- rebind them to the more familiar vim-style up/down.</span>
+        mappings = {
+          i = {
+            [<span class="str">"&lt;C-j&gt;"</span>] = actions.move_selection_next,
+            [<span class="str">"&lt;C-k&gt;"</span>] = actions.move_selection_previous,
+          },
+        },
+      },
+    })
+    pcall(telescope.load_extension, <span class="str">"fzf"</span>)
+  <span class="kw">end</span>,
+}</code></pre>
+    <p><code>plenary.nvim</code> is a utility library Telescope is built on (async jobs, path handling, etc.) &mdash; not used directly anywhere in this config, just a hard dependency of Telescope itself. <code>telescope-fzf-native.nvim</code> is a small C extension (hence <code>build = "make"</code>, compiled on install) that reimplements fzf's fuzzy-matching algorithm natively for faster sorting on large result sets than Telescope's pure-Lua matcher.</p>
+    <p>The explicit <code>vimgrep_arguments</code> matches the same ripgrep flags used for <code>grepprg</code> in <code>options.lua</code>, so live-grep results are consistent with plain <code>:grep</code> results (same hidden-file/gitignore/smart-case behavior). <code>pcall(telescope.load_extension, "fzf")</code> registers the native sorter, wrapped in <code>pcall</code> so a missing/not-yet-compiled native binary degrades gracefully to the pure-Lua sorter instead of erroring.</p>
+    <div class="callout gotcha">
+      <strong>Why <code>&lt;C-j&gt;</code>/<code>&lt;C-k&gt;</code> needed an explicit override:</strong> checking Telescope's own <code>mappings.lua</code> source directly (rather than guessing) showed its <em>defaults</em> already bind something to those keys in insert mode &mdash; just not selection movement: <code>&lt;C-j&gt;</code> is bound to <code>actions.nop</code> (does nothing) and <code>&lt;C-k&gt;</code> to <code>actions.preview_scrolling_right</code>. Only <code>&lt;C-n&gt;</code>/<code>&lt;C-p&gt;</code> and the arrow keys move the selection out of the box, which is why arrow keys "worked" while the more vim-habitual <code>&lt;C-j&gt;</code>/<code>&lt;C-k&gt;</code> silently did nothing. The <code>defaults.mappings.i</code> table is Telescope's documented override mechanism for exactly this &mdash; each entry replaces that key's action for every picker built from these defaults (find_files, live_grep, grep_string, lsp_references, etc. all inherit it), so it's one change instead of repeating it per-picker.
+    </div>
+  </section>
+
+  <!-- ============ lsp.lua ============ -->
+  <section class="file" id="lsp-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/lsp.lua</code></h2>
+    <p class="file-purpose">Installs and wires up Python, Lua, and Cucumber language servers via Mason. (Java is deliberately absent here &mdash; see <a href="#jdtls-lua">jdtls.lua</a>.)</p>
+    <pre><code><span class="kw">return</span> {
+  { <span class="str">"williamboman/mason.nvim"</span>, config = <span class="kw">true</span> },
+  {
+    <span class="str">"williamboman/mason-lspconfig.nvim"</span>,
+    event = { <span class="str">"BufReadPre"</span>, <span class="str">"BufNewFile"</span> },
+    dependencies = { <span class="str">"williamboman/mason.nvim"</span>, <span class="str">"neovim/nvim-lspconfig"</span>, <span class="str">"hrsh7th/cmp-nvim-lsp"</span> },
+    config = <span class="kw">function</span>()
+      vim.lsp.config(<span class="str">"*"</span>, {
+        capabilities = <span class="kw">require</span>(<span class="str">"cmp_nvim_lsp"</span>).default_capabilities(),
+      })
+
+      vim.lsp.config(<span class="str">"cucumber_language_server"</span>, {
+        root_markers = { <span class="str">"pom.xml"</span>, <span class="str">"build.gradle"</span>, <span class="str">"build.gradle.kts"</span>, <span class="str">"mvnw"</span>, <span class="str">"gradlew"</span>, <span class="str">".git"</span> },
+      })
+
+      <span class="kw">require</span>(<span class="str">"mason-lspconfig"</span>).setup({
+        ensure_installed = { <span class="str">"pyright"</span>, <span class="str">"ruff"</span>, <span class="str">"lua_ls"</span>, <span class="str">"cucumber_language_server"</span> },
+        <span class="cm">-- jdtls is started manually per-buffer via nvim-jdtls in
+        -- after/ftplugin/java.lua (needs custom root_dir/workspace/settings),
+        -- so it must not be auto-enabled through the generic handler here.</span>
+        automatic_enable = { exclude = { <span class="str">"jdtls"</span> } },
+      })
+    <span class="kw">end</span>,
+  },
+}</code></pre>
+    <p><code>mason.nvim</code> is a package manager for LSP servers/linters/formatters &mdash; it downloads and manages the actual server binaries under <code>~/.local/share/nvim/mason/</code>. <code>mason-lspconfig.nvim</code> is the glue layer between Mason and Neovim's built-in LSP client: <code>ensure_installed</code> tells it which servers should be present (installing them on first run if missing), and by default (as of the version installed here) it also calls <code>vim.lsp.enable()</code> automatically for each one.</p>
+    <div class="callout">
+      <strong>Two Python servers, one job split in two:</strong> <code>pyright</code> handles type checking, hover, go-to-definition, and "add missing import" completions. <code>ruff</code> (Astral's linter, run here as its own native LSP server rather than the older, now-deprecated <code>ruff-lsp</code> wrapper) handles lint diagnostics and import <em>sorting</em> via its <code>source.organizeImports</code> code action. Both attach to the same Python buffer simultaneously &mdash; a common, low-overhead pattern rather than something unusual.
+    </div>
+    <p><code>vim.lsp.config("*", { capabilities = ... })</code> sets default capabilities for <em>every</em> LSP server Neovim's client ever starts, merging in nvim-cmp's completion capabilities so any server that supports richer completion (snippets, etc.) can use it. This is the current (Neovim 0.11+) native API; the older pattern of calling <code>require("lspconfig").pyright.setup({...})</code> per-server is deprecated as of nvim-lspconfig v3 in favor of this plus <code>vim.lsp.enable()</code>, which is what <code>mason-lspconfig</code>'s <code>automatic_enable</code> does under the hood.</p>
+    <p><code>jdtls</code> is explicitly excluded from auto-enable because it can't use the generic one-size-fits-all handler this file sets up &mdash; it needs a per-project workspace directory and root-relative settings, which is why it's started by hand in <code>after/ftplugin/java.lua</code> instead.</p>
+
+    <h3 class="fn">Cucumber step definitions</h3>
+    <p><code>cucumber_language_server</code> (the <code>@cucumber/language-server</code> npm package, installed via Mason like the others) attaches to any buffer with filetype <code>cucumber</code> &mdash; which <a href="#autocmds-lua">autocmds.lua</a> already maps every <code>*.feature</code> file to &mdash; and answers <code>textDocument/definition</code> requests by matching the Gherkin step under the cursor against step-definition regexes/expressions in the project's glue code. Because it's a normal <code>textDocument/definition</code> provider, it needs zero new keymap wiring: the existing <code>&lt;leader&gt;]</code>/<code>&lt;C-]&gt;</code> go-to-definition functions in <a href="#keymaps-lua">keymaps.lua</a> already check for <em>any</em> attached LSP client and call <code>vim.lsp.buf.definition()</code>/the raw request &mdash; they don't know or care that the "definition" this time is a Java method rather than a variable.</p>
+    <p>Its default settings (baked into the server itself, not configured here) already look for <code>src/test/**/*.feature</code> and glue under <code>src/test/**/*.java</code> &mdash; which matches every Cucumber-JVM project checked on this machine, so no explicit <code>cucumber.features</code>/<code>cucumber.glue</code> settings were needed.</p>
+    <div class="callout gotcha">
+      <strong>Why <code>root_markers</code> needed widening:</strong> the server's own default root marker is just <code>.git</code>. That's fine for a project whose git repo root <em>is</em> the project root (e.g. <code>~/dev/template</code>), but breaks for a build module nested inside a larger monorepo &mdash; e.g. <code>~/dev/sorg/server</code>, whose actual <code>.git</code> lives two directories up at <code>~/dev/sorg</code>. With only <code>.git</code> as a marker, the server's root resolves to the monorepo root, and its <code>src/test/**/*.feature</code> glob then never reaches into <code>server/src/test/...</code> &mdash; go-to-definition silently returned "No locations found" until this was caught during testing. Adding <code>pom.xml</code>/<code>build.gradle*</code>/<code>mvnw</code>/<code>gradlew</code> to <code>root_markers</code> (same fix <code>after/ftplugin/java.lua</code> already uses for jdtls, for the identical reason) makes it find the actual module root first. Verified against two real projects: <code>~/dev/sorg/server/src/test/resources/features/users.feature</code> jumps to the matching <code>@Given(...)</code> in <code>UserSteps.java</code>, and <code>~/dev/template/src/test/resources/features/authentication.feature</code> (a standalone, non-monorepo project) jumps to a regex-based step in <code>RegistrationSteps.java</code>.
+    </div>
+  </section>
+
+  <!-- ============ completion.lua ============ -->
+  <section class="file" id="completion-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/completion.lua</code></h2>
+    <p class="file-purpose"><a href="https://github.com/hrsh7th/nvim-cmp" target="_blank">nvim-cmp</a>, the autocompletion popup engine, wired to LSP + snippets + buffer words + file paths.</p>
+    <pre><code><span class="kw">return</span> {
+  <span class="str">"hrsh7th/nvim-cmp"</span>,
+  event = <span class="str">"InsertEnter"</span>,
+  dependencies = {
+    <span class="str">"hrsh7th/cmp-nvim-lsp"</span>,   <span class="cm">-- completion source: LSP</span>
+    <span class="str">"hrsh7th/cmp-buffer"</span>,     <span class="cm">-- completion source: words already in open buffers</span>
+    <span class="str">"hrsh7th/cmp-path"</span>,       <span class="cm">-- completion source: filesystem paths</span>
+    <span class="str">"L3MON4D3/LuaSnip"</span>,       <span class="cm">-- snippet engine</span>
+    <span class="str">"saadparwaiz1/cmp_luasnip"</span>, <span class="cm">-- completion source: LuaSnip snippets</span>
+  },</code></pre>
+    <p><code>event = "InsertEnter"</code> is the whole reason this loads instantly: nvim-cmp and its five dependencies don't load at all until the very first time you enter insert mode, so they cost nothing on a session where you only read code.</p>
+    <pre><code>mapping = cmp.mapping.preset.insert({
+  [<span class="str">"&lt;C-Space&gt;"</span>] = cmp.mapping.complete(),
+  [<span class="str">"&lt;CR&gt;"</span>] = cmp.mapping.confirm({ select = <span class="kw">false</span> }),
+  [<span class="str">"&lt;Tab&gt;"</span>] = cmp.mapping(<span class="kw">function</span>(fallback)
+    <span class="kw">if</span> cmp.visible() <span class="kw">then</span> cmp.select_next_item()
+    <span class="kw">elseif</span> luasnip.expand_or_jumpable() <span class="kw">then</span> luasnip.expand_or_jump()
+    <span class="kw">else</span> fallback() <span class="kw">end</span>
+  <span class="kw">end</span>, { <span class="str">"i"</span>, <span class="str">"s"</span> }),
+  <span class="cm">-- &lt;S-Tab&gt; mirrors this in reverse</span>
+}),</code></pre>
+    <p><code>&lt;Tab&gt;</code> is context-sensitive, checked in priority order: if the completion menu is open, move to the next item; otherwise if the cursor is inside an expandable snippet placeholder, jump to the next one; otherwise, fall back to whatever <code>&lt;Tab&gt;</code> would normally do (insert a real tab). This is the standard three-way nvim-cmp/LuaSnip Tab pattern. <code>&lt;CR&gt;</code> confirms the currently-selected completion item, but only if one is explicitly selected (<code>select = false</code> means pressing Enter with the menu merely <em>open</em> but nothing highlighted still inserts a newline, rather than accidentally confirming the top suggestion).</p>
+    <pre><code>sources = cmp.config.sources({
+  { name = <span class="str">"nvim_lsp"</span> },
+  { name = <span class="str">"luasnip"</span> },
+}, {
+  { name = <span class="str">"buffer"</span> },
+  { name = <span class="str">"path"</span> },
+})</code></pre>
+    <p>Two priority groups: LSP and snippet completions rank above plain buffer-word/path completions (the two-argument form of <code>cmp.config.sources</code> treats the first list as higher priority than the second).</p>
+  </section>
+
+  <!-- ============ jdtls.lua ============ -->
+  <section class="file" id="jdtls-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/jdtls.lua</code></h2>
+    <p class="file-purpose">Just the plugin spec + "make sure the jdtls binary is installed" logic. The actual Java LSP setup lives in <a href="#ftplugin-java-lua">after/ftplugin/java.lua</a> &mdash; explained there.</p>
+    <pre><code><span class="kw">return</span> {
+  <span class="str">"mfussenegger/nvim-jdtls"</span>,
+  ft = <span class="str">"java"</span>,
+  dependencies = { <span class="str">"williamboman/mason.nvim"</span> },
+  config = <span class="kw">function</span>()
+    <span class="kw">local</span> ok, registry = pcall(<span class="kw">require</span>, <span class="str">"mason-registry"</span>)
+    <span class="kw">if</span> ok <span class="kw">then</span>
+      <span class="kw">local</span> installed_ok, pkg = pcall(registry.get_package, <span class="str">"jdtls"</span>)
+      <span class="kw">if</span> installed_ok <span class="kw">and</span> <span class="kw">not</span> pkg:is_installed() <span class="kw">then</span>
+        pkg:install()
+      <span class="kw">end</span>
+    <span class="kw">end</span>
+  <span class="kw">end</span>,
+}</code></pre>
+    <p><code>ft = "java"</code> means this whole plugin (and its <code>config</code> function) only loads the first time you open a <code>.java</code> file in a session. That <code>config</code> function talks to Mason's package registry directly (<code>mason-registry</code>), bypassing <code>mason-lspconfig</code> entirely, and installs the <code>jdtls</code> package if it isn't already there. This is intentionally separate from <a href="#lsp-lua">lsp.lua</a>'s <code>ensure_installed</code> list &mdash; that list would also try to auto-<em>enable</em> jdtls through the generic handler, which can't supply the per-project workspace directory jdtls actually needs.</p>
+  </section>
+
+  <!-- ============ jdtls_settings.lua ============ -->
+  <section class="file" id="jdtls-settings-lua">
+    <h2 class="filetitle"><span class="badge ftplugin">java setup</span> <code>lua/util/jdtls_settings.lua</code></h2>
+    <p class="file-purpose">A single-purpose lookup table: per-project overrides for import ordering, kept separate from <code>after/ftplugin/java.lua</code> so it's an obvious, isolated place to add a new project's convention later.</p>
+    <pre><code><span class="kw">local</span> DEFAULT_IMPORT_ORDER = { <span class="str">"java"</span>, <span class="str">"javax"</span>, <span class="str">"org"</span>, <span class="str">"com"</span> }
+
+<span class="kw">local</span> overrides = {
+  <span class="cm">-- ["/Users/shane/dev/someproject"] = { "java", "javax", "com.company", "" },</span>
+}
+
+<span class="kw">function</span> M.import_order(root_dir)
+  <span class="kw">for</span> path_substring, order <span class="kw">in</span> pairs(overrides) <span class="kw">do</span>
+    <span class="kw">if</span> root_dir <span class="kw">and</span> root_dir:find(path_substring, <span class="num">1</span>, <span class="kw">true</span>) <span class="kw">then</span>
+      <span class="kw">return</span> order
+    <span class="kw">end</span>
+  <span class="kw">end</span>
+  <span class="kw">return</span> DEFAULT_IMPORT_ORDER
+<span class="kw">end</span></code></pre>
+    <div class="callout warn">
+      <strong>Why the override table is empty:</strong> jdtls's <code>java.completion.importOrder</code> setting controls the group ordering used by "Organize Imports" and import auto-completion &mdash; the natural place to encode a project's checkstyle <code>ImportOrder</code>/<code>CustomImportOrder</code> rule. But as of writing, none of the checkstyle configs on this machine (<code>~/dev/template/checkstyle.xml</code>, <code>~/dev/developer-toolbox/src/backend/checkstyle.xml</code>) actually define one &mdash; only <code>AvoidStarImport</code>/<code>RedundantImport</code>/<code>UnusedImports</code>. <code>DEFAULT_IMPORT_ORDER</code> is a reasonable placeholder until a real one exists. To add a project-specific order later, uncomment/add a line to <code>overrides</code> keyed by any substring of that project's root path.
+    </div>
+    <p><code>root_dir:find(path_substring, 1, true)</code> &mdash; the trailing <code>true</code> makes this a plain substring search rather than a Lua pattern match, so a path containing special characters like <code>-</code> or <code>.</code> can't accidentally break the lookup.</p>
+  </section>
+
+  <!-- ============ java.lua ============ -->
+  <section class="file" id="ftplugin-java-lua">
+    <h2 class="filetitle"><span class="badge ftplugin">ftplugin</span> <code>after/ftplugin/java.lua</code></h2>
+    <p class="file-purpose">Runs once per Java buffer (Neovim's <code>after/ftplugin/&lt;ft&gt;.lua</code> convention &mdash; no explicit wiring needed anywhere else). This is where the Java LSP actually gets started, because jdtls can't be configured through the generic global handler in <code>lsp.lua</code>: every project needs its own workspace directory and, potentially, its own import-order settings.</p>
+
+    <h3 class="fn">Buffer-local editing settings</h3>
+    <pre><code>vim.bo.tabstop = <span class="num">4</span>
+vim.bo.softtabstop = <span class="num">4</span>
+vim.bo.shiftwidth = <span class="num">4</span>
+vim.bo.expandtab = <span class="kw">true</span>
+vim.bo.textwidth = <span class="num">100</span></code></pre>
+    <p>Overrides the global 2-space indent (from <code>options.lua</code>) to 4 spaces for Java specifically &mdash; exactly what the old <code>.vim/ftplugin/java.vim</code> did.</p>
+
+    <h3 class="fn">Guard clauses</h3>
+    <pre><code><span class="kw">local</span> jdtls_ok, jdtls = pcall(<span class="kw">require</span>, <span class="str">"jdtls"</span>)
+<span class="kw">if</span> <span class="kw">not</span> jdtls_ok <span class="kw">then</span> <span class="kw">return</span> <span class="kw">end</span>
+
+<span class="kw">local</span> jdtls_cmd = vim.fn.exepath(<span class="str">"jdtls"</span>)
+<span class="kw">if</span> jdtls_cmd == <span class="str">""</span> <span class="kw">then</span>
+  <span class="cm">-- Mason hasn't finished installing jdtls yet (first run); nothing to attach to.</span>
+  <span class="kw">return</span>
+<span class="kw">end</span>
+
+<span class="kw">local</span> root_dir = <span class="kw">require</span>(<span class="str">"jdtls.setup"</span>).find_root({ <span class="str">".git"</span>, <span class="str">"mvnw"</span>, <span class="str">"gradlew"</span>, <span class="str">"pom.xml"</span>, <span class="str">"build.gradle"</span>, <span class="str">"build.gradle.kts"</span> })
+<span class="kw">if</span> <span class="kw">not</span> root_dir <span class="kw">then</span> <span class="kw">return</span> <span class="kw">end</span></code></pre>
+    <p>Three early-return checks before doing anything expensive: the plugin module has to actually be loaded, the <code>jdtls</code> binary Mason installs has to actually be findable on <code>$PATH</code> (it won't be for a few seconds on a completely fresh install while Mason is still downloading it &mdash; opening a Java file that early just quietly skips LSP setup rather than erroring), and there has to be a recognizable project root above the file (checked in order: a <code>.git</code> repo, an mvn/gradle wrapper script, or a build file). A random standalone <code>.java</code> file with none of those gets no LSP attached at all &mdash; jdtls fundamentally needs a project root to index.</p>
+
+    <h3 class="fn">Workspace directory</h3>
+    <pre><code><span class="kw">local</span> project_name = vim.fn.fnamemodify(root_dir, <span class="str">":p:h:t"</span>)
+<span class="kw">local</span> workspace_dir = vim.fn.stdpath(<span class="str">"data"</span>) .. <span class="str">"/site/java/workspace-"</span> .. project_name</code></pre>
+    <p>jdtls (Eclipse JDT under the hood) keeps a persistent index/workspace on disk per project, similar to how a real Eclipse or IntelliJ workspace works &mdash; reusing one across sessions makes reopening a project much faster than a cold reindex every time. <code>fnamemodify(root_dir, ":p:h:t")</code> extracts just the project's directory name (e.g. <code>template</code> from <code>/Users/shane/dev/template</code>) to use as a human-readable workspace folder name under Neovim's data directory.</p>
+
+    <h3 class="fn">Lombok</h3>
+    <pre><code><span class="kw">local</span> cmd = { jdtls_cmd, <span class="str">"-data"</span>, workspace_dir }
+<span class="kw">local</span> lombok_jar = vim.fn.stdpath(<span class="str">"data"</span>) .. <span class="str">"/mason/packages/jdtls/lombok.jar"</span>
+<span class="kw">if</span> vim.uv.fs_stat(lombok_jar) <span class="kw">then</span>
+  table.insert(cmd, <span class="str">"--jvm-arg=-javaagent:"</span> .. lombok_jar)
+<span class="kw">end</span></code></pre>
+    <p>Lombok generates methods (getters/setters/builders/<code>equals</code>/<code>toString</code>/etc.) at annotation-processing time from annotations like <code>@Getter</code>/<code>@Data</code>/<code>@Builder</code> &mdash; the methods never exist as text anywhere in the source. jdtls can't see them unless Lombok's own Java agent is loaded into jdtls's <em>own</em> JVM (not the project's build JVM) so it can intercept and rewrite the AST the same way `javac` does when Lombok runs as an annotation processor during a real compile. Mason's jdtls package conveniently bundles this exact jar (<code>lombok.jar</code>, sitting right next to the launcher), so no separate download is needed &mdash; just point at it.</p>
+    <p><code>--jvm-arg</code> is the Mason jdtls launcher script's (a small Python wrapper, not the raw <code>java</code> command) documented way to pass a raw JVM option through to the underlying <code>java</code> process it spawns; it requires the <code>=</code> form (<code>--jvm-arg=-javaagent:...</code>, not a separate argument) per its own <code>--help</code>. The <code>vim.uv.fs_stat</code> check means this degrades gracefully &mdash; if the jar isn't there for some reason, jdtls still starts, just without Lombok resolution, rather than failing to start at all.</p>
+    <div class="callout">
+      <strong>Verified against a real Lombok class:</strong> <code>UserEntity</code> in <code>~/dev/template</code> has <code>@Getter</code> and defines no <code>getEmail()</code> method anywhere in its source; <code>UserEntityToUserConverter.java</code> calls <code>source.getEmail()</code>. Before this fix that would be an unresolved-method error; after it, hovering the call resolves the full generated signature &mdash; <code>String ee.shanel.template.model.entity.UserEntity.getEmail()</code> &mdash; with a working source link into <code>UserEntity.java</code>, and the buffer has zero diagnostics.
+    </div>
+
+    <h3 class="fn">Starting the LSP client</h3>
+    <pre><code><span class="kw">require</span>(<span class="str">"jdtls"</span>).start_or_attach({
+  cmd = cmd,
+  root_dir = root_dir,
+  capabilities = <span class="kw">require</span>(<span class="str">"cmp_nvim_lsp"</span>).default_capabilities(),
+  settings = {
+    java = {
+      signatureHelp = { enabled = <span class="kw">true</span> },
+      completion = {
+        importOrder = <span class="kw">require</span>(<span class="str">"util.jdtls_settings"</span>).import_order(root_dir),
+      },
+      configuration = {
+        updateBuildConfiguration = <span class="str">"interactive"</span>,
+      },
+    },
+  },
+  on_attach = <span class="kw">function</span>(_, bufnr) <span class="cm">-- see below</span> <span class="kw">end</span>,
+})</code></pre>
+    <p><code>start_or_attach</code> is jdtls's own smart entry point: if a jdtls server is already running for this workspace (e.g. you have two files from the same project open), it attaches the new buffer to the existing client instead of spawning a second one. <code>importOrder</code> pulls from the small lookup table in <a href="#jdtls-settings-lua">jdtls_settings.lua</a>. <code>updateBuildConfiguration = "interactive"</code> means jdtls will prompt (rather than silently auto-reimport, or silently ignore) when it detects the build file (<code>pom.xml</code>/<code>build.gradle</code>) has changed since the workspace was indexed.</p>
+
+    <h3 class="fn"><code>on_attach</code> &mdash; buffer-local Java keymaps</h3>
+    <pre><code>on_attach = <span class="kw">function</span>(_, bufnr)
+  <span class="cm">-- Ported from the old .vim/ftplugin/java.vim FinalField(): insert `final`
+  -- before the word under the cursor, then move down 2 lines.</span>
+  vim.keymap.set(<span class="str">"n"</span>, <span class="str">"&lt;leader&gt;fa"</span>, <span class="kw">function</span>()
+    vim.cmd(<span class="str">"normal! 0ea final"</span>)
+    vim.cmd(<span class="str">"normal! jj"</span>)
+  <span class="kw">end</span>, { buffer = bufnr })
+
+  vim.keymap.set(<span class="str">"i"</span>, <span class="str">"&lt;leader&gt;cc"</span>,
+    <span class="str">'private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));'</span>,
+    { buffer = bufnr })
+<span class="kw">end</span>,</code></pre>
+    <p>Both are exact ports of the old vimrc's Java-specific mappings. <code>&lt;leader&gt;fa</code> (mnemonic: "final") replays the keystrokes <code>0ea final</code> &mdash; go to column 0, move to end of the first word, append <code> final</code> &mdash; turning e.g. a method parameter into a <code>final</code> one, then hops down two lines (matching the old function's exact behavior, useful when stamping <code>final</code> onto a run of consecutive parameters). <code>&lt;leader&gt;cc</code> in insert mode drops in a fixed-clock test constant, a common pattern for deterministic time-based tests. <code>{ buffer = bufnr }</code> makes both mappings local to this one buffer only &mdash; they only exist in Java files.</p>
+
+    <h3 class="fn">Organize-imports-on-save</h3>
+    <pre><code>vim.api.nvim_create_autocmd(<span class="str">"BufWritePre"</span>, {
+  pattern = <span class="str">"*.java"</span>,
+  callback = <span class="kw">function</span>(args)
+    <span class="kw">local</span> clients = vim.lsp.get_clients({ bufnr = args.buf, name = <span class="str">"jdtls"</span> })
+    <span class="kw">if</span> #clients == <span class="num">0</span> <span class="kw">then</span> <span class="kw">return</span> <span class="kw">end</span>
+
+    <span class="kw">local</span> client = clients[<span class="num">1</span>]
+    <span class="kw">local</span> params = vim.lsp.util.make_range_params(<span class="num">0</span>, client.offset_encoding)
+    params.context = { diagnostics = {} }
+    <span class="kw">local</span> resp = client:request_sync(<span class="str">"java/organizeImports"</span>, params, <span class="num">2000</span>, args.buf)
+    <span class="kw">if</span> resp <span class="kw">and</span> resp.result <span class="kw">then</span>
+      vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding)
+    <span class="kw">end</span>
+  <span class="kw">end</span>,
+})</code></pre>
+    <p>This is the mechanism behind "missing/unused imports get fixed automatically" &mdash; it's what replaces the old <code>vim-java-unused-imports</code> vim plugin. On every save of a <code>.java</code> file (before the write happens, hence <code>BufWritePre</code>), if jdtls is attached, it sends jdtls's custom <code>java/organizeImports</code> request and applies whatever edit comes back &mdash; adding imports for unambiguous unresolved symbols, removing unused ones, and reordering the rest according to <code>importOrder</code>.</p>
+    <div class="callout gotcha">
+      <strong>Why this calls the raw LSP request instead of <code>require("jdtls").organize_imports()</code>:</strong>
+      nvim-jdtls ships its own <code>organize_imports()</code> helper, but it applies the resulting edit <em>asynchronously</em> &mdash; the response comes back after <code>:write</code> has already flushed the old (unorganized) content to disk, which then leaves the buffer marked dirty again <em>right after saving</em> (confusing, and means the file on disk doesn't actually match what you just "saved"). This was caught during testing: a file with two genuinely unused imports, saved via the async helper, still had both imports on disk afterward. Requesting <em>synchronously</em> in <code>BufWritePre</code> (<code>client:request_sync(..., 2000, ...)</code>, 2-second timeout) blocks the save just long enough for the edit to land in the buffer <em>before</em> <code>:write</code> proceeds, so what lands on disk is actually correct. Verified by testing directly: a file with unused <code>java.util.List</code>/<code>java.util.ArrayList</code> imports had both removed on save, with the saved file matching the buffer.
+    </div>
+    <p>One subtlety in the request params: <code>vim.lsp.util.make_range_params(0, ...)</code> &mdash; that <code>0</code> is the "current window" sentinel (matching how jdtls's own internal helper builds these params), not a buffer number, despite superficially looking like one.</p>
+  </section>
+
+  <!-- ============ conform.lua ============ -->
+  <section class="file" id="conform-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/conform.lua</code></h2>
+    <p class="file-purpose">Runs <code>black</code> over Python buffers on demand (via <code>&lt;leader&gt;l</code>, see <a href="#keymaps-lua">keymaps.lua</a>'s <code>format_buffer()</code>) &mdash; not automatically on save, matching the old vimrc's manual-reformat habit.</p>
+    <pre><code><span class="kw">return</span> {
+  <span class="str">"stevearc/conform.nvim"</span>,
+  ft = <span class="str">"python"</span>,
+  opts = {
+    formatters_by_ft = { python = { <span class="str">"black"</span> } },
+  },
+}</code></pre>
+    <div class="callout warn">
+      <strong>Known issue, unrelated to this config:</strong> the <code>black</code> binary on this machine currently has a broken shebang &mdash; it points at <code>/opt/homebrew/opt/python@3.9/bin/python3.9</code>, a Python version Homebrew has since removed. This means <code>&lt;leader&gt;l</code> on a Python file will fail with "Formatter failed" until <code>black</code> is reinstalled (e.g. <code>pipx install black --force</code> or <code>brew install black</code>). The wiring here is correct; the underlying binary just needs fixing.
+    </div>
+  </section>
+
+  <!-- ============ python.lua ============ -->
+  <section class="file" id="ftplugin-python-lua">
+    <h2 class="filetitle"><span class="badge ftplugin">ftplugin</span> <code>after/ftplugin/python.lua</code></h2>
+    <p class="file-purpose">Runs once per Python buffer. A direct, near-total port of the old <code>.vim/ftplugin/python.vim</code>.</p>
+    <pre><code>vim.bo.tabstop = <span class="num">4</span>
+vim.bo.softtabstop = <span class="num">4</span>
+vim.bo.shiftwidth = <span class="num">4</span>
+vim.bo.expandtab = <span class="kw">true</span>
+vim.bo.autoindent = <span class="kw">true</span>
+vim.bo.textwidth = <span class="num">79</span>
+vim.bo.fileformat = <span class="str">"unix"</span>
+vim.bo.formatprg = <span class="str">"black -q -"</span></code></pre>
+    <p>4-space indent (PEP 8), 79-column width, and <code>formatprg</code> set directly too &mdash; belt-and-braces alongside conform.nvim, so <code>black</code> also backs any manual <code>gq</code>-based reformatting outside the <code>&lt;leader&gt;l</code> path (e.g. reformatting just a paragraph/comment block with <code>gqip</code>).</p>
+  </section>
+
+  <!-- ============ gitsigns.lua ============ -->
+  <section class="file" id="gitsigns-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/gitsigns.lua</code></h2>
+    <p class="file-purpose">Git integration: change markers in the sign column, and the current-line blame behind <code>&lt;leader&gt;gb</code>/<code>&lt;leader&gt;gB</code>.</p>
+    <pre><code><span class="kw">return</span> {
+  <span class="str">"lewis6991/gitsigns.nvim"</span>,
+  event = <span class="str">"BufReadPre"</span>,
+  opts = {},
+}</code></pre>
+    <p>All defaults &mdash; <code>opts = {}</code> just calls <code>setup()</code> with no overrides. Loaded on <code>BufReadPre</code> (right before any existing file is read), so it's active for essentially every real file you open but doesn't load for e.g. a brand-new unnamed scratch buffer. The two keymaps that actually use it (<code>toggle_current_line_blame()</code> and <code>blame_line({ full = true })</code>) live in <a href="#keymaps-lua">keymaps.lua</a>, wrapped in <code>require("gitsigns")</code> closures for the same lazy-require reason as the Telescope mappings.</p>
+  </section>
+
+  <!-- ============ toggleterm.lua ============ -->
+  <section class="file" id="toggleterm-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/toggleterm.lua</code></h2>
+    <p class="file-purpose">A floating terminal, toggled with <code>Ctrl-\</code> or <code>:ToggleTerm</code>.</p>
+    <pre><code><span class="kw">return</span> {
+  <span class="str">"akinsho/toggleterm.nvim"</span>,
+  cmd = { <span class="str">"ToggleTerm"</span>, <span class="str">"TermExec"</span> },
+  keys = { <span class="str">"&lt;C-\\&gt;"</span> },
+  opts = {
+    open_mapping = [[&lt;c-\&gt;]],
+    direction = <span class="str">"float"</span>,
+    shell = <span class="str">"/bin/zsh"</span>,
+  },</code></pre>
+    <p>Loads lazily on either the <code>:ToggleTerm</code>/<code>:TermExec</code> commands or the <code>&lt;C-\&gt;</code> key &mdash; whichever happens first. <code>open_mapping</code> is toggleterm's own internal binding for the same key (so once loaded, it keeps handling <code>&lt;C-\&gt;</code> itself for toggling open/closed).</p>
+    <pre><code>config = <span class="kw">function</span>(_, opts)
+  <span class="kw">require</span>(<span class="str">"toggleterm"</span>).setup(opts)
+
+  vim.api.nvim_create_autocmd(<span class="str">"TermOpen"</span>, {
+    pattern = <span class="str">"term://*toggleterm#*"</span>,
+    callback = <span class="kw">function</span>(args)
+      <span class="kw">local</span> map_opts = { buffer = args.buf }
+      vim.keymap.set(<span class="str">"t"</span>, <span class="str">"&lt;Esc&gt;"</span>, [[&lt;C-\&gt;&lt;C-n&gt;]], map_opts)
+      vim.keymap.set(<span class="str">"t"</span>, <span class="str">"&lt;C-h&gt;"</span>, [[&lt;C-\&gt;&lt;C-n&gt;&lt;C-W&gt;&lt;C-h&gt;]], map_opts)
+      <span class="cm">-- &lt;C-j/k/l&gt; mirror this for the other directions</span>
+    <span class="kw">end</span>,
+  })
+<span class="kw">end</span>,</code></pre>
+    <p>Without this, <code>&lt;C-h/j/k/l&gt;</code> inside a terminal buffer would just be sent through to the shell as literal control characters, instead of moving between window splits the way they do everywhere else in this config (see <code>keymaps.lua</code>). The pattern <code>term://*toggleterm#*</code> scopes this specifically to toggleterm's own terminal buffers (identifiable by <code>toggleterm#</code> in their buffer name), so it doesn't affect any other terminal buffer you might open some other way. Each mapping sends <code>&lt;C-\&gt;&lt;C-n&gt;</code> first &mdash; Neovim's built-in "drop from terminal-insert mode to Normal mode" sequence &mdash; before the actual window-movement command, since terminal-mode key input goes straight to the shell process otherwise.</p>
+  </section>
+
+  <!-- ============ editing.lua ============ -->
+  <section class="file" id="editing-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/editing.lua</code></h2>
+    <p class="file-purpose">Three small, config-free tpope plugins, ported as-is from the old <code>.vimrc</code> plugin list.</p>
+    <pre><code><span class="kw">return</span> {
+  { <span class="str">"tpope/vim-surround"</span>, event = <span class="str">"VeryLazy"</span> },
+  { <span class="str">"tpope/vim-fugitive"</span>, cmd = { <span class="str">"Git"</span>, <span class="str">"Gdiffsplit"</span>, <span class="str">"Gvdiffsplit"</span> } },
+  { <span class="str">"tpope/vim-commentary"</span>, event = <span class="str">"VeryLazy"</span> },
+}</code></pre>
+    <ul>
+      <li><strong>vim-surround</strong>: add/change/delete surrounding quotes, brackets, tags (<code>cs"'</code>, <code>ds"</code>, <code>ysiw)</code>, etc).</li>
+      <li><strong>vim-fugitive</strong>: Git commands from inside Neovim &mdash; <code>:Git blame</code> (pairs with gitsigns' quicker inline blame), <code>:Gdiffsplit</code>, <code>:Git</code> as a general front-end.</li>
+      <li><strong>vim-commentary</strong>: comment/uncomment lines (<code>gcc</code>, <code>gc</code> + motion).</li>
+    </ul>
+    <p><code>event = "VeryLazy"</code> is lazy.nvim's "load this shortly after startup finishes, once Neovim is idle" event &mdash; used for small plugins that add keymaps/text-objects you might use on the very first keystroke, so they can't wait for something as specific as <code>InsertEnter</code>, but also don't need to block the initial frame the way the colorscheme does. <code>vim-fugitive</code> instead loads only when one of its own commands is actually invoked, since none of its functionality is keymap-driven by default here.</p>
+  </section>
+
+  <!-- ============ misc.lua ============ -->
+  <section class="file" id="misc-lua">
+    <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/misc.lua</code></h2>
+    <p class="file-purpose">The two remaining odds-and-ends plugins from the old <code>.vimrc</code>.</p>
+    <pre><code><span class="kw">return</span> {
+  { <span class="str">"junegunn/goyo.vim"</span>, cmd = <span class="str">"Goyo"</span> },
+  { <span class="str">"lervag/vimtex"</span>, ft = <span class="str">"tex"</span> },
+}</code></pre>
+    <p><strong>goyo.vim</strong> is the distraction-free writing mode behind <code>&lt;leader&gt;gg</code> (which just runs <code>:Goyo</code> &mdash; see <code>keymaps.lua</code>); its width is configured back in <code>options.lua</code> (<code>vim.g.goyo_width = 120</code>). <strong>vimtex</strong> is LaTeX support, configured via <code>vim.g.vimtex_view_method</code>/<code>vim.g.vimtex_compiler_method</code> also in <code>options.lua</code> (Skim as the PDF viewer, <code>latexmk</code> as the compiler) &mdash; it only loads when you open a <code>.tex</code> file, so it costs nothing otherwise.</p>
+  </section>
+
+  <!-- ============ keymap table ============ -->
+  <section class="file" id="keymap-table">
+    <h2 class="filetitle">Keymap cheat sheet</h2>
+    <p class="file-purpose">Every mapping in one place. Global ones are defined in <code>keymaps.lua</code> unless noted; Java-only ones come from <code>after/ftplugin/java.lua</code>.</p>
+    <table>
+      <tr><th>Key</th><th>Mode</th><th>Action</th></tr>
+      <tr><td><code>&lt;C-p&gt;</code></td><td>n</td><td>Telescope find_files</td></tr>
+      <tr><td><code>&lt;leader&gt;f</code></td><td>n</td><td>Telescope live_grep</td></tr>
+      <tr><td><code>&lt;leader&gt;h</code></td><td>n</td><td>Clear search highlight</td></tr>
+      <tr><td><code>&lt;leader&gt;&lt;space&gt;</code></td><td>n</td><td>Find file matching word under cursor</td></tr>
+      <tr><td><code>&lt;leader&gt;l</code></td><td>n</td><td>Format buffer (filetype-aware)</td></tr>
+      <tr><td><code>&lt;leader&gt;g</code></td><td>n</td><td>Start <code>:grep</code></td></tr>
+      <tr><td><code>&lt;leader&gt;gg</code></td><td>n</td><td><code>:Goyo</code></td></tr>
+      <tr><td><code>&lt;leader&gt;s</code></td><td>n</td><td>Start <code>:%s/</code></td></tr>
+      <tr><td><code>&lt;leader&gt;w</code></td><td>n, v</td><td>Grep word under cursor / visual selection</td></tr>
+      <tr><td><code>&lt;leader&gt;c</code></td><td>n</td><td>Close quickfix window</td></tr>
+      <tr><td><code>&lt;leader&gt;&lt;CR&gt;</code></td><td>n</td><td>Run <code>python3 main.py</code> (Python only)</td></tr>
+      <tr><td><code>&lt;leader&gt;r</code></td><td>n</td><td>Run current file (per-filetype)</td></tr>
+      <tr><td><code>&lt;leader&gt;t</code></td><td>n</td><td>Run tests (per-filetype)</td></tr>
+      <tr><td><code>&lt;leader&gt;n</code></td><td>n</td><td>Rename current file</td></tr>
+      <tr><td><code>&lt;leader&gt;ac</code></td><td>n</td><td>Yank whole buffer to clipboard</td></tr>
+      <tr><td><code>&lt;leader&gt;jq</code></td><td>n</td><td>Format buffer as JSON</td></tr>
+      <tr><td><code>&lt;leader&gt;nt</code></td><td>n</td><td>Insert Java <code>Instant</code> snippet with current time</td></tr>
+      <tr><td><code>&lt;leader&gt;u</code></td><td>n, v</td><td>Insert UUID(s)</td></tr>
+      <tr><td><code>&lt;leader&gt;]</code></td><td>n</td><td>Go to definition (LSP, else ctags)</td></tr>
+      <tr><td><code>&lt;leader&gt;[</code></td><td>n</td><td>Jump back (pop tag stack, else <code>&lt;C-o&gt;</code>)</td></tr>
+      <tr><td><code>&lt;C-]&gt;</code></td><td>n</td><td>Go to definition, or find references if already there</td></tr>
+      <tr><td><code>&lt;leader&gt;ca</code></td><td>n</td><td>LSP code action</td></tr>
+      <tr><td><code>Tab</code> / <code>Shift-Tab</code></td><td>n</td><td>Previous / next buffer</td></tr>
+      <tr><td><code>&lt;BS&gt;&lt;BS&gt;</code></td><td>n</td><td>Delete current buffer</td></tr>
+      <tr><td><code>&lt;C-h/j/k/l&gt;</code></td><td>n, t</td><td>Move between window splits</td></tr>
+      <tr><td>Arrow keys</td><td>all</td><td>Disabled</td></tr>
+      <tr><td><code>Q</code></td><td>n</td><td>Disabled</td></tr>
+      <tr><td><code>jj</code></td><td>i</td><td><code>&lt;Esc&gt;</code></td></tr>
+      <tr><td><code>&lt;leader&gt;rr</code></td><td>n</td><td>Re-source config</td></tr>
+      <tr><td><code>&lt;leader&gt;ts</code></td><td>n</td><td>Toggle spellcheck (en_gb)</td></tr>
+      <tr><td><code>&lt;leader&gt;gb</code> / <code>&lt;leader&gt;gB</code></td><td>n</td><td>Toggle inline blame / show full commit</td></tr>
+      <tr><td><code>&lt;C-\&gt;</code></td><td>n, t</td><td>Toggle floating terminal</td></tr>
+      <tr><td><code>&lt;Esc&gt;</code></td><td>t (in toggleterm)</td><td>Exit terminal mode</td></tr>
+      <tr><td><code>&lt;leader&gt;fa</code></td><td>n (Java)</td><td>Insert <code>final</code> before word under cursor</td></tr>
+      <tr><td><code>&lt;leader&gt;cc</code></td><td>i (Java)</td><td>Insert fixed-Clock test constant</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ caveats ============ -->
+  <section class="file" id="caveats">
+    <h2 class="filetitle">Known caveats</h2>
+    <ul>
+      <li><strong><code>black</code> is broken system-wide</strong> (not caused by this config) &mdash; its shebang points at a removed Homebrew Python. Fix with <code>pipx install black --force</code> or <code>brew install black</code>; <code>&lt;leader&gt;l</code> on Python files will work correctly once it's fixed.</li>
+      <li><strong>Java import order is a placeholder.</strong> No checkstyle config on this machine currently defines an <code>ImportOrder</code>/<code>CustomImportOrder</code> module, so <code>jdtls_settings.lua</code>'s default (<code>java, javax, org, com</code>) isn't mirroring any real project convention yet &mdash; just a reasonable default until one exists.</li>
+      <li><strong>First launch after a fresh clone</strong> will spend a few seconds/minutes installing plugins (lazy.nvim), language servers (Mason: pyright, ruff, lua_ls, jdtls), and treesitter parsers, all in the background. Subsequent launches are fast.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Generated to document <code>~/.bin/dotfiles/config/nvim</code> as it stood after the initial setup + follow-up tweaks (colorscheme swapped to nordic, smarter <code>&lt;C-]&gt;</code>, fold defaults, toggleterm).
+  </footer>
+</main>
+</div>
+</body>
+</html>
