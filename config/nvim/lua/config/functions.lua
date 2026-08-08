@@ -230,8 +230,9 @@ end
 --- falls back to whole file/dir (test_cmd) if the cursor isn't inside a
 --- recognizable test. Ported from TestUnderCursor() in .vimrc, plus a
 --- neovim-only addition: if the current buffer is a source file (not a
---- test file) and its test file exists in the project, jump there instead
---- of trying to run tests against the source file.
+--- test file), jump to its test file if one exists in the project; if
+--- none does, warn instead of running the test command against the
+--- source file itself (which has no @Test/test_ methods and just fails).
 function M.test_under_cursor()
   vim.cmd("write")
   local ext = vim.fn.expand("%:e")
@@ -246,6 +247,8 @@ function M.test_under_cursor()
       if goto_single_file(base .. "_test.py") then
         return
       end
+      vim.notify("No test file found for " .. base .. ".py", vim.log.levels.WARN)
+      return
     end
     M.run_python_test_under_cursor()
   elseif ext == "java" then
@@ -254,6 +257,8 @@ function M.test_under_cursor()
       if goto_single_file(class_name .. "Test.java") then
         return
       end
+      vim.notify("No test file found for " .. class_name .. ".java", vim.log.levels.WARN)
+      return
     end
     M.run_java_test_under_cursor()
   else
