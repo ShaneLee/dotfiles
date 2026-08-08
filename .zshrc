@@ -42,6 +42,9 @@ alias euseful="vi $HOME/.bin/dotfiles/.useful.zconfig"
 source $HOME/.bin/dotfiles/.git.zconfig
 source $HOME/.bin/todos/.todos.zconfig
 
+alias nv='nvim'
+alias ai='claude'
+
 bindkey '^P' history-beginning-search-backward
 bindkey '^N' history-beginning-search-forward
 bindkey '^F' forward-word

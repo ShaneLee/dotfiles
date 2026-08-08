@@ -1,7 +1,7 @@
 return {
   "akinsho/toggleterm.nvim",
   cmd = { "ToggleTerm", "TermExec" },
-  keys = { "<C-\\>" },
+  keys = { "<C-\\>", "<leader>ai" },
   opts = {
     open_mapping = [[<c-\>]],
     direction = "float",
@@ -23,5 +23,25 @@ return {
         vim.keymap.set("t", "<C-l>", [[<C-\><C-n><C-W><C-l>]], map_opts)
       end,
     })
+
+    -- A dedicated, persistent terminal for the `ai` alias (nvim-native
+    -- counterpart to the tmux popup in bin/tmux-popup): toggling it closed
+    -- doesn't kill the underlying job, just hides the window, so the
+    -- conversation survives until this nvim instance quits. Scoped to this
+    -- one nvim process only -- unlike the tmux version, it won't survive
+    -- nvim exiting/crashing and isn't reachable from any other pane/session.
+    -- `zsh -ic` (not a plain `cmd = "ai"`) is needed because toggleterm spawns
+    -- via `termopen()`, which runs the command through a non-interactive
+    -- `zsh -c`, and .zshrc (where the alias lives) is only sourced for
+    -- interactive shells.
+    local Terminal = require("toggleterm.terminal").Terminal
+    local ai_term = Terminal:new({
+      cmd = "zsh -ic 'ai'",
+      direction = "float",
+      hidden = true,
+    })
+    vim.keymap.set("n", "<leader>ai", function()
+      ai_term:toggle()
+    end, { desc = "Toggle persistent ai (Claude) terminal" })
   end,
 }

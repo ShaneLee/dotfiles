@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Open (or reattach to) a persistent tmux session running a REPL-style command
+# inside a floating popup, scoped to a working directory. Detaching (tmux
+# prefix + d) closes the popup but leaves the session running in the
+# background, so state (a Claude Code conversation, a REPL's history, etc.)
+# survives between popups.
+#
+# Usage: tmux-popup <command> <working-directory> [width] [height]
+#
+# Meant to be called from a tmux keybinding, e.g. in .tmux.conf:
+#   bind -r y run-shell '~/.bin/dotfiles/bin/tmux-popup ai "#{pane_current_path}"'
+# Adding a popup for another REPL is then just one more `bind` line pointing
+# at the same script with a different command/key.
+
+set -euo pipefail
+
+if [[ $# -lt 2 ]]; then
+  echo "Usage: tmux-popup <command> <working-directory> [width] [height]" >&2
+  exit 1
+fi
+
+CMD="$1"
+DIR="$2"
+WIDTH="${3:-80%}"
+HEIGHT="${4:-80%}"
+
+HASH=$(printf '%s' "$DIR" | md5 -q 2>/dev/null || printf '%s' "$DIR" | md5sum | cut -c1-8)
+HASH=${HASH:0:8}
+SESSION="${CMD}-${HASH}"
+
+# $CMD is looked up via an interactive zsh (-i) so aliases/functions defined
+# in .zshrc (like `ai`) resolve, not just real binaries on $PATH.
+tmux has-session -t "$SESSION" 2>/dev/null || \
+  tmux new-session -d -s "$SESSION" -c "$DIR" "zsh -ic '$CMD'"
+
+tmux display-popup -w "$WIDTH" -h "$HEIGHT" -E "tmux attach-session -t $SESSION"

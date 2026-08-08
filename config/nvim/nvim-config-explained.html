@@ -1092,11 +1092,11 @@ vim.bo.formatprg = <span class="str">"black -q -"</span></code></pre>
   <!-- ============ toggleterm.lua ============ -->
   <section class="file" id="toggleterm-lua">
     <h2 class="filetitle"><span class="badge plugin">plugin</span> <code>lua/plugins/toggleterm.lua</code></h2>
-    <p class="file-purpose">A floating terminal, toggled with <code>Ctrl-\</code> or <code>:ToggleTerm</code>.</p>
+    <p class="file-purpose">A floating terminal, toggled with <code>Ctrl-\</code> or <code>:ToggleTerm</code>, plus a second dedicated floating terminal for the <code>ai</code> alias.</p>
     <pre><code><span class="kw">return</span> {
   <span class="str">"akinsho/toggleterm.nvim"</span>,
   cmd = { <span class="str">"ToggleTerm"</span>, <span class="str">"TermExec"</span> },
-  keys = { <span class="str">"&lt;C-\\&gt;"</span> },
+  keys = { <span class="str">"&lt;C-\\&gt;"</span>, <span class="str">"&lt;leader&gt;ai"</span> },
   opts = {
     open_mapping = [[&lt;c-\&gt;]],
     direction = <span class="str">"float"</span>,
@@ -1115,8 +1115,27 @@ vim.bo.formatprg = <span class="str">"black -q -"</span></code></pre>
       <span class="cm">-- &lt;C-j/k/l&gt; mirror this for the other directions</span>
     <span class="kw">end</span>,
   })
+
+  <span class="kw">local</span> Terminal = <span class="kw">require</span>(<span class="str">"toggleterm.terminal"</span>).Terminal
+  <span class="kw">local</span> ai_term = Terminal:new({
+    cmd = <span class="str">"zsh -ic 'ai'"</span>,
+    direction = <span class="str">"float"</span>,
+    hidden = <span class="kw">true</span>,
+  })
+  vim.keymap.set(<span class="str">"n"</span>, <span class="str">"&lt;leader&gt;ai"</span>, <span class="kw">function</span>()
+    ai_term:toggle()
+  <span class="kw">end</span>, { desc = <span class="str">"Toggle persistent ai (Claude) terminal"</span> })
 <span class="kw">end</span>,</code></pre>
-    <p>Without this, <code>&lt;C-h/j/k/l&gt;</code> inside a terminal buffer would just be sent through to the shell as literal control characters, instead of moving between window splits the way they do everywhere else in this config (see <code>keymaps.lua</code>). The pattern <code>term://*toggleterm#*</code> scopes this specifically to toggleterm's own terminal buffers (identifiable by <code>toggleterm#</code> in their buffer name), so it doesn't affect any other terminal buffer you might open some other way. Each mapping sends <code>&lt;C-\&gt;&lt;C-n&gt;</code> first &mdash; Neovim's built-in "drop from terminal-insert mode to Normal mode" sequence &mdash; before the actual window-movement command, since terminal-mode key input goes straight to the shell process otherwise.</p>
+    <p>Without the <code>TermOpen</code> autocmd above, <code>&lt;C-h/j/k/l&gt;</code> inside a terminal buffer would just be sent through to the shell as literal control characters, instead of moving between window splits the way they do everywhere else in this config (see <code>keymaps.lua</code>). The pattern <code>term://*toggleterm#*</code> scopes this specifically to toggleterm's own terminal buffers (identifiable by <code>toggleterm#</code> in their buffer name), so it doesn't affect any other terminal buffer you might open some other way. Each mapping sends <code>&lt;C-\&gt;&lt;C-n&gt;</code> first &mdash; Neovim's built-in "drop from terminal-insert mode to Normal mode" sequence &mdash; before the actual window-movement command, since terminal-mode key input goes straight to the shell process otherwise.</p>
+
+    <h3 class="fn">A persistent <code>ai</code> terminal &mdash; behind <code>&lt;leader&gt;ai</code></h3>
+    <p>This is the nvim-native counterpart to <code>bin/tmux-popup</code> (a separate, tmux-level mechanism for the same idea &mdash; see below). Rather than calling the generic <code>toggleterm.setup()</code> keymap again, this constructs its own named <code>Terminal</code> object with <code>hidden = true</code>: toggling it closed hides the floating window but does <em>not</em> kill the underlying job, so pressing <code>&lt;leader&gt;ai</code> again reattaches to the exact same running process &mdash; same conversation, not a fresh one. Verified directly: opening it, closing it, and reopening it landed on the identical buffer number both times (<code>same_buf=true</code>), and the terminal content showed the real Claude Code welcome banner, confirming the alias actually resolved and launched.</p>
+    <div class="callout gotcha">
+      <strong>Why <code>cmd = "zsh -ic 'ai'"</code> and not just <code>cmd = "ai"</code>:</strong> toggleterm spawns its command via Neovim's <code>termopen()</code>, passed as a plain string &mdash; which Neovim runs through <code>&amp;shell &amp;shellcmdflag</code>, i.e. a <em>non-interactive</em> <code>zsh -c</code>. Since <code>ai</code> is a plain <code>alias</code> in <code>.zshrc</code> (not a real binary on <code>$PATH</code>), and <code>.zshrc</code> is only sourced for interactive shells, a bare <code>cmd = "ai"</code> would fail to resolve. Forcing <code>-i</code> makes zsh source <code>.zshrc</code> first, so the alias exists by the time it tries to run it &mdash; the identical problem, and identical fix, as <code>bin/tmux-popup</code> uses for the same reason (see below). Keeping both indirected through the <code>ai</code> alias rather than hardcoding <code>claude</code> in either place means swapping what <code>ai</code> points to later is a one-line change in <code>.zshrc</code>, not two.
+    </div>
+    <div class="callout">
+      <strong>Trade-off vs. the tmux popup:</strong> this terminal's persistence is scoped to <em>this one Neovim process</em> &mdash; closing the floating window keeps it running, but quitting Neovim (or it crashing) kills it, and it isn't reachable from any other Neovim instance or terminal pane. <code>bin/tmux-popup</code>'s session lives at the tmux server level instead, so it survives Neovim entirely, is reachable from any pane via <code>prefix + y</code>, and multiple Neovim instances in the same directory would all reach the <em>same</em> tmux session. Both are wired up; which one you reach for depends on whether you want the conversation tied to "this editing session" or genuinely backgroundable/shareable across panes.
+    </div>
   </section>
 
   <!-- ============ editing.lua ============ -->
