@@ -97,7 +97,8 @@ nnoremap <leader>w :call SearchCurrentWord()<cr>
 nnoremap <leader>c :cclose<cr>
 nnoremap <leader><cr> :call File_name_cmd()<cr>
 nnoremap <leader>r :call File_cmd()<cr>
-nnoremap <leader>t :call Test_cmd()<cr>
+nnoremap <leader>t :call TestUnderCursor()<cr>
+nnoremap <C-t> :call TestUnderCursor()<cr>
 nnoremap <leader>n :call RenameFile()<cr>
 nnoremap <leader>ac :%y+<cr> " Copy whole file
 nnoremap <leader>jq :%!jq .<cr> " Format JSON
@@ -332,6 +333,110 @@ function! Test_cmd()
   else
     echo "No tester defined for filetype: " . s:ext
   endif
+endfunction
+
+" --- Run Test Under Cursor ---
+" Finds the test method/function enclosing the cursor and runs just that
+" one; falls back to Test_cmd() (whole file/dir) if the cursor isn't
+" inside a recognizable test.
+function! TestUnderCursor()
+  execute ':w'
+  let ext = expand('%:e')
+  if ext ==# 'py'
+    call s:RunPythonTestUnderCursor()
+  elseif ext ==# 'java'
+    call s:RunJavaTestUnderCursor()
+  else
+    call Test_cmd()
+  endif
+endfunction
+
+function! s:RunPythonTestUnderCursor()
+  let lnum = search('^\s*def\s\+test_\w*\s*(', 'bcnW')
+  if lnum <= 0
+    exec '!pytest tests'
+    return
+  endif
+
+  let def_line = getline(lnum)
+  let test_name = matchstr(def_line, '^\s*def\s\+\zstest_\w*\ze\s*(')
+  let indent = matchstr(def_line, '^\s*')
+  let class_name = ''
+
+  if indent !=# ''
+    let clnum = lnum - 1
+    while clnum > 0
+      let cline = getline(clnum)
+      if cline =~# '^\S'
+        let class_name = matchstr(cline, '^class\s\+\zs\w\+')
+        break
+      endif
+      let clnum -= 1
+    endwhile
+  endif
+
+  let target = expand('%')
+  if class_name !=# ''
+    let target .= '::' . class_name . '::' . test_name
+  else
+    let target .= '::' . test_name
+  endif
+  exec '!pytest ' . shellescape(target)
+endfunction
+
+" Prefer a gradle wrapper/gradle over maven when the project has one,
+" searching upward from the current file. Returns the '!...' shell command
+" to run for the given class (and optional method).
+function! s:JavaTestCommand(class_name, method_name)
+  let gradlew = findfile('gradlew', '.;')
+  let gradle_build = gradlew ==# '' ? (findfile('build.gradle', '.;') !=# '' ? findfile('build.gradle', '.;') : findfile('build.gradle.kts', '.;')) : ''
+
+  if gradlew !=# '' || gradle_build !=# ''
+    let gradle_bin = gradlew !=# '' ? fnamemodify(gradlew, ':p') : 'gradle'
+    let pattern = a:method_name !=# ''
+      \ ? '*.' . a:class_name . '.' . a:method_name
+      \ : '*.' . a:class_name
+    return '!' . gradle_bin . ' test --tests "' . pattern . '"'
+  endif
+
+  if a:method_name !=# ''
+    return '!mvn test -Dcheckstyle.skip=true -Dtest=' . a:class_name . '#' . a:method_name
+  else
+    return '!mvn test -Dcheckstyle.skip=true -Dtest=' . a:class_name
+  endif
+endfunction
+
+function! s:RunJavaTestUnderCursor()
+  let class_name = expand('%:t:r')
+  let lnum = line('.')
+  let method_name = ''
+
+  while lnum > 0
+    let line = getline(lnum)
+    if line =~# '^\s*\%(public\|private\|protected\)\?\s*\%(static\s\+\)\?void\s\+\w\+\s*('
+      let candidate = matchstr(line, '\<\w\+\ze\s*(')
+      let alnum = lnum - 1
+      let is_test = 0
+      while alnum > 0
+        let aline = getline(alnum)
+        if aline =~# '^\s*@Test\>'
+          let is_test = 1
+          break
+        elseif aline =~# '^\s*@\|^\s*$'
+          let alnum -= 1
+        else
+          break
+        endif
+      endwhile
+      if is_test
+        let method_name = candidate
+        break
+      endif
+    endif
+    let lnum -= 1
+  endwhile
+
+  exec s:JavaTestCommand(class_name, method_name)
 endfunction
 
 " --- Cucumber Execution ---
