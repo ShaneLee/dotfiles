@@ -185,6 +185,25 @@
   .badge.core { background: rgba(158,206,106,0.15); color: var(--green); }
   .badge.ftplugin { background: rgba(224,175,104,0.15); color: var(--orange); }
 
+  details.replfile {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 8px 0;
+    padding: 0 14px;
+  }
+  details.replfile summary {
+    cursor: pointer;
+    padding: 10px 0;
+    color: var(--fg-bright);
+    font-size: 0.9rem;
+    list-style: revert;
+  }
+  details.replfile summary code { color: var(--green); background: none; padding: 0; }
+  details.replfile[open] summary { border-bottom: 1px solid var(--border); }
+  details.replfile pre { margin: 12px 0 14px; }
+  .repldump { margin: 16px 0 24px; }
+
   footer {
     color: var(--fg-dim);
     font-size: 0.85rem;
@@ -253,6 +272,7 @@
   <ul>
     <li><a href="#keymap-table">Keymap cheat sheet</a></li>
     <li><a href="#caveats">Known caveats</a></li>
+    <li><a href="#replicate">Replicate this config (for LLMs)</a></li>
   </ul>
 </nav>
 
@@ -1219,6 +1239,1668 @@ vim.bo.formatprg = <span class="str">"black -q -"</span></code></pre>
       <li><strong>First launch after a fresh clone</strong> will spend a few seconds/minutes installing plugins (lazy.nvim), language servers (Mason: pyright, ruff, lua_ls, jdtls), and treesitter parsers, all in the background. Subsequent launches are fast.</li>
     </ul>
   </section>
+
+<section class="file" id="replicate">
+    <h2 class="filetitle">Replicating this config from scratch</h2>
+    <p class="file-purpose">Everything an LLM (or a human) needs to recreate this exact Neovim setup on a new machine, without reading the rest of this page: the file tree, the verbatim contents of every file, external prerequisites, and a ready-to-paste prompt.</p>
+
+    <div class="callout">
+      <strong>Two files below aren't narrated elsewhere on this page yet</strong> &mdash; <code>lua/plugins/dap.lua</code> (nvim-dap + nvim-dap-ui wiring, including colorized <code>dap-repl</code> test output) and <code>lua/util/java_test_bundles.lua</code> (pins and verifies the vscode-java-test jars jdtls's JUnit runner needs, bypassing Mason for that one package because its resolution proved unreliable). They're included here in full because a faithful replication needs them even though the prose walkthrough above hasn't caught up.
+    </div>
+
+    <h3 class="fn">1. External prerequisites</h3>
+    <p>Install these before first launch &mdash; Neovim/lazy.nvim/Mason handle everything else (plugins, LSP servers, parsers) automatically:</p>
+    <table>
+      <tr><th>Tool</th><th>Needed for</th></tr>
+      <tr><td><code>nvim</code> 0.11+</td><td>Native <code>vim.lsp.config</code>/<code>vim.lsp.enable</code> API used in <code>lsp.lua</code>; 0.12+ for non-deprecated <code>vim.lsp.util.show_document</code></td></tr>
+      <tr><td><code>git</code></td><td>lazy.nvim self-clones itself on first run</td></tr>
+      <tr><td><code>rg</code> (ripgrep)</td><td><code>grepprg</code>, Telescope live_grep/grep_string, <code>FZF_DEFAULT_COMMAND</code></td></tr>
+      <tr><td>A C compiler / <code>make</code></td><td>Builds telescope-fzf-native's native sorter</td></tr>
+      <tr><td><code>tree-sitter</code> CLI</td><td>nvim-treesitter's <code>main</code>-branch API compiles grammars from source (<code>brew install tree-sitter-cli</code>)</td></tr>
+      <tr><td>JDK 17+</td><td>Runs jdtls itself (Eclipse JDT)</td></tr>
+      <tr><td><code>mvn</code> / <code>gradlew</code></td><td>Java project root detection and <code>&lt;leader&gt;r</code>/<code>&lt;leader&gt;t</code> for non-<code>main.java</code> files</td></tr>
+      <tr><td><code>ctags</code></td><td>Populates the <code>tags</code> file that <code>&lt;leader&gt;]</code>/<code>&lt;C-]&gt;</code> fall back to when no LSP is attached</td></tr>
+      <tr><td><code>black</code></td><td>Python formatting, both via conform.nvim and <code>formatprg</code></td></tr>
+      <tr><td><code>jq</code></td><td><code>&lt;leader&gt;jq</code> JSON reformat</td></tr>
+      <tr><td><code>glow</code></td><td>Previewing <code>.md</code>/<code>.cmd</code> files via <code>&lt;leader&gt;r</code></td></tr>
+      <tr><td>Skim.app + <code>latexmk</code></td><td>vimtex's configured PDF viewer/compiler (macOS-specific; swap for another viewer elsewhere)</td></tr>
+      <tr><td>zsh with <code>ggu</code> function + <code>ai</code> alias in <code>~/.zshrc</code></td><td><code>:Ggu</code>, <code>&lt;leader&gt;u</code>/<code>&lt;leader&gt;nt</code> UUID insertion, and the <code>&lt;leader&gt;ai</code> toggleterm terminal</td></tr>
+      <tr><td><code>~/.ripgreprc</code></td><td>Referenced via <code>RIPGREP_CONFIG_PATH</code>; fine to omit, ripgrep just falls back to no extra config</td></tr>
+      <tr><td><code>~/.bin/dotfiles/skeletons/*.sh</code>/<code>*.py</code></td><td>New-file templates inserted by <code>autocmds.lua</code>; omit the autocmd if you don't want this</td></tr>
+      <tr><td>Per-language runtimes (optional)</td><td><code>python3</code>, <code>node</code>, <code>go</code>, <code>cargo</code>, <code>gcc</code>, <code>ghc</code>, <code>tclsh</code>, <code>scala</code> &mdash; only needed for the corresponding branch of <code>functions.lua</code>'s <code>file_cmd</code>/<code>test_cmd</code> executor tables</td></tr>
+    </table>
+    <p>Everything else installs itself on first launch: lazy.nvim bootstraps from <code>lua/config/lazy.lua</code>, then Mason installs <code>pyright</code>, <code>ruff</code>, <code>lua_ls</code>, <code>cucumber_language_server</code>, <code>jdtls</code>, and <code>java-debug-adapter</code>, and <code>util/java_test_bundles.lua</code> downloads and checksum-verifies the pinned vscode-java-test jars the first time a Java buffer opens.</p>
+
+    <h3 class="fn">2. File tree to create</h3>
+    <p>Identical to <a href="#tree">the tree above</a>, plus the two undocumented files and a pinned lockfile:</p>
+    <pre class="tree"><code><span class="d">config/nvim/</span>
+├── <span class="f">init.lua</span>
+├── <span class="f">lazy-lock.json</span>          <span class="cm"># pinned plugin commits, see below</span>
+├── <span class="d">lua/</span>
+│   ├── <span class="d">config/</span>
+│   │   ├── <span class="f">options.lua</span>
+│   │   ├── <span class="f">lazy.lua</span>
+│   │   ├── <span class="f">keymaps.lua</span>
+│   │   ├── <span class="f">commands.lua</span>
+│   │   ├── <span class="f">autocmds.lua</span>
+│   │   └── <span class="f">functions.lua</span>
+│   ├── <span class="d">plugins/</span>
+│   │   ├── <span class="f">colorscheme.lua</span>
+│   │   ├── <span class="f">treesitter.lua</span>
+│   │   ├── <span class="f">telescope.lua</span>
+│   │   ├── <span class="f">lsp.lua</span>
+│   │   ├── <span class="f">completion.lua</span>
+│   │   ├── <span class="f">jdtls.lua</span>
+│   │   ├── <span class="f">conform.lua</span>
+│   │   ├── <span class="f">dap.lua</span>            <span class="cm"># not yet narrated above</span>
+│   │   ├── <span class="f">gitsigns.lua</span>
+│   │   ├── <span class="f">toggleterm.lua</span>
+│   │   ├── <span class="f">editing.lua</span>
+│   │   └── <span class="f">misc.lua</span>
+│   └── <span class="d">util/</span>
+│       ├── <span class="f">jdtls_settings.lua</span>
+│       └── <span class="f">java_test_bundles.lua</span> <span class="cm"># not yet narrated above</span>
+└── <span class="d">after/ftplugin/</span>
+    ├── <span class="f">java.lua</span>
+    └── <span class="f">python.lua</span></code></pre>
+    <p>The real config lives at <code>~/.bin/dotfiles/config/nvim</code> and is symlinked to <code>~/.config/nvim</code> &mdash; replicate either by symlinking the same way or by placing these files directly at <code>~/.config/nvim</code>.</p>
+
+    <h3 class="fn">3. Complete verbatim source</h3>
+    <p>Every file, exactly as it stands. Click a filename to expand it.</p>
+
+    <div class="repldump">
+<details class="replfile" id="repl-init-lua">
+<summary><code>init.lua</code></summary>
+<pre><code>vim.loader.enable()
+
+require("config.options")
+require("config.lazy")
+require("config.keymaps")
+require("config.commands")
+require("config.autocmds")
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-config-options-lua">
+<summary><code>lua/config/options.lua</code></summary>
+<pre><code>-- Ported from dotfiles/.vimrc "Global Settings"
+
+vim.g.mapleader = ","
+
+local opt = vim.opt
+
+opt.hlsearch = true
+opt.incsearch = true
+opt.number = true
+opt.relativenumber = true
+opt.cursorline = true
+opt.tabstop = 2
+opt.softtabstop = 2
+opt.shiftwidth = 2
+opt.expandtab = true
+opt.ttimeoutlen = 0
+opt.smartcase = true
+opt.smartindent = true
+opt.ignorecase = true
+opt.complete:remove("i")
+opt.splitright = true
+opt.autoread = true
+opt.errorbells = false
+opt.shell = "/bin/zsh"
+opt.iskeyword:remove("_")
+opt.hidden = true
+
+-- FZF/ripgrep (kept for :grep / grepprg even though Telescope now drives fuzzy find)
+vim.env.RIPGREP_CONFIG_PATH = vim.env.HOME .. "/.ripgreprc"
+vim.env.FZF_DEFAULT_COMMAND = 'rg --files --hidden --glob "!.git"'
+
+opt.wildignore:append({
+  "*/.git/*", "*/.hg/*", "*/.svn/*", "*/.idea/*", "*/.DS_Store", "*/vendor",
+  "*.iml", "*.class", "*/target/*", "*.pyc", "*__init__*", "*/__pycache__",
+  "tags", "*.o", "*.pdf", "*.jpg", "*.mp3", "*.m4a", "*.mp4", "*.ico",
+  "*.png", "*.webp", "*.svg", "*.jpeg", "*.avif",
+})
+
+if vim.fn.executable("rg") == 1 then
+  opt.grepprg = "rg --vimgrep --smart-case --hidden"
+  opt.grepformat = "%f:%l:%c:%m"
+end
+
+-- Goyo
+vim.g.goyo_width = 120
+
+-- Vimtex
+vim.g.vimtex_view_method = "skim"
+vim.g.vimtex_compiler_method = "latexmk"
+
+-- Treesitter (lua/plugins/treesitter.lua) enables fold-by-expression, which
+-- defaults to closing every fold (functions included) as soon as a file
+-- opens. foldlevelstart=99 keeps everything open by default while leaving
+-- manual folding (za/zc/zo) fully working.
+opt.foldlevelstart = 99
+
+-- Disable unused providers we don't use, without touching ones plugins may need
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_ruby_provider = 0
+
+-- Persistent undo (ported from .vimrc "Persistent Undo")
+local undodir = vim.fn.expand("~/.vim/undo")
+vim.fn.mkdir(undodir, "p")
+opt.undodir = undodir
+opt.undofile = true
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-config-lazy-lua">
+<summary><code>lua/config/lazy.lua</code></summary>
+<pre><code>-- lazy.nvim bootstrap
+
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.uv.fs_stat(lazypath) then
+  vim.fn.system({
+    "git", "clone", "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable",
+    lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+require("lazy").setup({
+  spec = { { import = "plugins" } },
+  install = { colorscheme = { "nordic" } },
+  checker = { enabled = false },
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "gzip", "tarPlugin", "tohtml", "tutor", "zipPlugin",
+      },
+    },
+  },
+})
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-config-keymaps-lua">
+<summary><code>lua/config/keymaps.lua</code></summary>
+<pre><code>-- Ported from dotfiles/.vimrc "Mappings", plus new LSP/telescope/gitsigns bindings
+
+local fn = require("config.functions")
+local map = vim.keymap.set
+
+-- Telescope-backed fuzzy find (replaces :Files via fzf)
+map("n", "&lt;C-p&gt;", function() require("telescope.builtin").find_files() end)
+map("n", "&lt;leader&gt;f", function() require("telescope.builtin").live_grep() end)
+
+map("n", "&lt;leader&gt;h", "&lt;cmd&gt;nohlsearch&lt;CR&gt;")
+map("n", "&lt;leader&gt;&lt;space&gt;", fn.find_file_by_word)
+
+-- Reformat: filetype-aware, falls back to the original formatprg macro (gg VG gq)
+local function format_buffer()
+  local ft = vim.bo.filetype
+  if ft == "java" then
+    vim.lsp.buf.format({ async = false })
+  elseif ft == "python" then
+    local ok, conform = pcall(require, "conform")
+    if ok then
+      conform.format({ lsp_fallback = false })
+    end
+  else
+    vim.cmd('normal! mqggVGgq`q')
+  end
+end
+map("n", "&lt;leader&gt;l", format_buffer)
+
+map("n", "&lt;leader&gt;g", ":silent grep ", { silent = false })
+map("n", "&lt;leader&gt;gg", "&lt;cmd&gt;Goyo&lt;CR&gt;")
+map("n", "&lt;leader&gt;s", ":%s/", { silent = false })
+map("n", "&lt;leader&gt;w", fn.search_current_word)
+map("v", "&lt;leader&gt;w", fn.search_visual_selection)
+map("n", "&lt;leader&gt;c", "&lt;cmd&gt;cclose&lt;CR&gt;")
+map("n", "&lt;leader&gt;&lt;CR&gt;", fn.file_name_cmd)
+map("n", "&lt;leader&gt;r", fn.file_cmd)
+map("n", "&lt;leader&gt;t", fn.test_under_cursor)
+map("n", "&lt;C-t&gt;", fn.test_under_cursor)
+map("n", "&lt;leader&gt;n", fn.rename_file)
+map("n", "&lt;leader&gt;ac", ":%y+&lt;CR&gt;")
+map("n", "&lt;leader&gt;jq", ":%!jq .&lt;CR&gt;")
+map("n", "&lt;leader&gt;nt", fn.insert_current_time)
+map("n", "&lt;leader&gt;u", fn.insert_uuid)
+map("v", "&lt;leader&gt;u", fn.insert_uuids_visual)
+
+-- Go-to-definition with ctags fallback (repurposed from redundant buffer-nav)
+--
+-- :tag throws E426 ("Tag not found") when the word under the cursor isn't in
+-- the tags file, which without pcall surfaces as a raw error message instead
+-- of failing quietly (noticeable in non-Java files, where there's no LSP to
+-- take the primary path and this fallback runs on every press). When that
+-- happens, fall through to the same word/grep search &lt;leader&gt;w uses, so the
+-- key still does *something* useful instead of just failing silently.
+local function try_tag_jump(word)
+  local ok = pcall(vim.cmd, "tag " .. word)
+  if not ok then
+    vim.notify("No tag found for '" .. word .. "', searching instead", vim.log.levels.INFO)
+    fn.search_current_word()
+  end
+end
+
+local function goto_definition()
+  if #vim.lsp.get_clients({ bufnr = 0 }) &gt; 0 then
+    vim.lsp.buf.definition()
+  else
+    local word = vim.fn.expand("&lt;cword&gt;")
+    if word ~= "" then
+      try_tag_jump(word)
+    end
+  end
+end
+map("n", "&lt;leader&gt;]", goto_definition)
+
+-- Jump back from a &lt;leader&gt;]/&lt;C-]&gt; jump: pop the tag stack (undoes the last
+-- go-to-definition/references jump) if there is one, else fall back to
+-- &lt;C-o&gt; (older position in the plain jumplist).
+local function jump_back()
+  local ok = pcall(vim.cmd, "pop")
+  if not ok then
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("&lt;C-o&gt;", true, false, true), "n", false)
+  end
+end
+map("n", "&lt;leader&gt;[", jump_back)
+
+-- &lt;C-]&gt;: go to definition, unless the cursor is already sitting on the
+-- definition, in which case show all usages/references instead (Telescope
+-- picker). Falls back to ctags (plain jump, no "already there" smarts) when
+-- no LSP client is attached.
+local function goto_definition_or_references()
+  local clients = vim.lsp.get_clients({ bufnr = 0 })
+  if #clients == 0 then
+    local word = vim.fn.expand("&lt;cword&gt;")
+    if word ~= "" then
+      try_tag_jump(word)
+    end
+    return
+  end
+
+  local client = clients[1]
+  local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+  vim.lsp.buf_request(0, "textDocument/definition", params, function(err, result)
+    if err or not result or vim.tbl_isempty(result) then
+      return
+    end
+
+    local target = result[1] or result
+    local target_uri = target.uri or target.targetUri
+    local target_range = target.range or target.targetSelectionRange
+
+    local already_there = target_uri == vim.uri_from_bufnr(0)
+      and target_range.start.line == vim.fn.line(".") - 1
+
+    if already_there then
+      require("telescope.builtin").lsp_references()
+    else
+      vim.lsp.util.show_document(target, client.offset_encoding, { reuse_win = true, focus = true })
+    end
+  end)
+end
+map("n", "&lt;C-]&gt;", goto_definition_or_references)
+
+map("n", "&lt;leader&gt;ca", vim.lsp.buf.code_action)
+
+-- Buffer navigation
+map("n", "&lt;Tab&gt;", "&lt;cmd&gt;bp&lt;CR&gt;")
+map("n", "&lt;S-Tab&gt;", "&lt;cmd&gt;bn&lt;CR&gt;")
+map("n", "&lt;BS&gt;&lt;BS&gt;", "&lt;cmd&gt;bd&lt;CR&gt;")
+
+-- Split navigation
+map("n", "&lt;C-J&gt;", "&lt;C-W&gt;&lt;C-J&gt;")
+map("n", "&lt;C-K&gt;", "&lt;C-W&gt;&lt;C-K&gt;")
+map("n", "&lt;C-L&gt;", "&lt;C-W&gt;&lt;C-L&gt;")
+map("n", "&lt;C-H&gt;", "&lt;C-W&gt;&lt;C-H&gt;")
+
+-- Turn off arrow keys
+map("", "&lt;Up&gt;", "&lt;Nop&gt;")
+map("", "&lt;Down&gt;", "&lt;Nop&gt;")
+map("", "&lt;Left&gt;", "&lt;Nop&gt;")
+map("", "&lt;Right&gt;", "&lt;Nop&gt;")
+
+map("n", "Q", "&lt;Nop&gt;")
+map("i", "jj", "&lt;Esc&gt;")
+
+-- Cucumber column delete macro
+vim.fn.setreg("c", "F|df|i|ea ajl")
+
+-- Non-"IDE" extras from .vimrc's `else` branch (ideavim only applies in the has('ide') branch)
+map("n", "&lt;leader&gt;rr", "&lt;cmd&gt;source $MYVIMRC&lt;CR&gt;")
+map("n", "&lt;leader&gt;ts", "&lt;cmd&gt;set spell! spelllang=en_gb&lt;CR&gt;")
+
+-- Gitsigns: current-line blame
+map("n", "&lt;leader&gt;gb", function() require("gitsigns").toggle_current_line_blame() end)
+map("n", "&lt;leader&gt;gB", function() require("gitsigns").blame_line({ full = true }) end)
+
+-- DAP: breakpoint toggle. Currently only wired to an adapter for Java
+-- (see after/ftplugin/java.lua's jdtls.setup_dap()), used by &lt;leader&gt;td's
+-- "debug nearest test" there, but kept global so other languages can pick
+-- it up for free once they get an adapter.
+map("n", "&lt;leader&gt;b", function() require("dap").toggle_breakpoint() end)
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-config-commands-lua">
+<summary><code>lua/config/commands.lua</code></summary>
+<pre><code>-- Typo-tolerant command aliases + UUID command, ported from dotfiles/.vimrc
+
+local function alias(name, target)
+  vim.api.nvim_create_user_command(name, target, {})
+end
+
+alias("WQ", "wq")
+alias("Wq", "wq")
+alias("W", "w")
+alias("Q", "q")
+
+vim.api.nvim_create_user_command("Ggu", function(opts)
+  vim.cmd('!zsh -c "source ~/.zshrc &amp;&amp; ggu ' .. (opts.args ~= "" and opts.args or "") .. '"')
+end, { nargs = "?" })
+
+-- %% expands to the current buffer's directory in cmdline mode
+vim.keymap.set("c", "%%", function()
+  return vim.fn.expand("%:h") .. "/"
+end, { expr = true })
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-config-autocmds-lua">
+<summary><code>lua/config/autocmds.lua</code></summary>
+<pre><code>-- Ported from dotfiles/.vimrc "Autocommands" (augroup MyVimrc)
+
+local group = vim.api.nvim_create_augroup("MyVimrc", { clear = true })
+
+-- Open quickfix window after :grep
+vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+  group = group,
+  pattern = "grep",
+  command = "cwindow",
+})
+
+-- Jump to last known cursor position when reopening a file
+vim.api.nvim_create_autocmd("BufReadPost", {
+  group = group,
+  callback = function()
+    if vim.bo.filetype:match("commit") then
+      return
+    end
+    local mark = vim.fn.line("'\"")
+    if mark &gt; 0 and mark &lt;= vim.fn.line("$") then
+      vim.cmd('normal! g`"')
+    end
+  end,
+})
+
+-- Filetype detection
+local ft_patterns = {
+  { "*.feature", "cucumber" },
+  { "*.zconfig", "zsh" },
+  { "*.config", "sh" },
+  { "*.ejs", "html" },
+  { "*.cmd", "markdown" },
+  { "*.j2", "yaml" },
+}
+for _, entry in ipairs(ft_patterns) do
+  vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+    group = group,
+    pattern = entry[1],
+    command = "setfiletype " .. entry[2],
+  })
+end
+
+-- Templates for new files
+vim.api.nvim_create_autocmd("BufNewFile", {
+  group = group,
+  pattern = "*.sh",
+  command = "0r ~/.bin/dotfiles/skeletons/bash.sh",
+})
+
+vim.api.nvim_create_autocmd("BufNewFile", {
+  group = group,
+  pattern = "*.py",
+  command = "0r ~/.bin/dotfiles/skeletons/python.py",
+})
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-config-functions-lua">
+<summary><code>lua/config/functions.lua</code></summary>
+<pre><code>-- Lua ports of the Vimscript functions from dotfiles/.vimrc "Functions" section
+
+local M = {}
+
+--- Insert a Java Instant.parse(...) snippet with the current UTC time.
+function M.insert_current_time()
+  local current_time = os.date("!%Y-%m-%dT%H:%M:%SZ")
+  vim.fn.append(
+    vim.fn.line("."),
+    string.format('private static final Instant NOW = Instant.parse("%s");', current_time)
+  )
+end
+
+--- Generate `count` UUIDs via the user's `ggu` zsh function and return them as a list.
+local function generate_uuids(count)
+  local out = vim.fn.system(string.format('zsh -c "source ~/.zshrc &amp;&amp; ggu %d"', count))
+  local uuids = {}
+  for line in out:gmatch("[^\r\n]+") do
+    table.insert(uuids, line)
+  end
+  return uuids
+end
+
+--- Normal-mode: insert one UUID at the cursor.
+function M.insert_uuid()
+  local uuids = generate_uuids(1)
+  if uuids[1] then
+    vim.api.nvim_put({ uuids[1] }, "c", true, true)
+  end
+end
+
+--- Visual-mode: insert one UUID per selected line, at the start column of the selection.
+function M.insert_uuids_visual()
+  local start_pos = vim.fn.getpos("'&lt;")
+  local end_pos = vim.fn.getpos("'&gt;")
+  local start_line, start_col = start_pos[2], start_pos[3]
+  local num_lines = end_pos[2] - start_line + 1
+
+  local uuids = generate_uuids(num_lines)
+  for i, uuid in ipairs(uuids) do
+    local lnum = start_line + i - 1
+    local line_content = vim.fn.getline(lnum)
+    local updated = line_content:sub(1, start_col - 1) .. uuid .. line_content:sub(start_col)
+    vim.fn.setline(lnum, updated)
+  end
+end
+
+--- Rename the current file (saveas + delete old file), same as :RenameFile.
+function M.rename_file()
+  local old_name = vim.fn.expand("%")
+  local new_name = vim.fn.input("New file name: ", old_name, "file")
+  if new_name ~= "" and new_name ~= old_name then
+    vim.cmd("saveas " .. vim.fn.fnameescape(new_name))
+    vim.fn.delete(old_name)
+    vim.cmd("redraw!")
+  end
+end
+
+--- Search for the word under the cursor via Telescope grep_string (replaces :Rg &lt;cword&gt;).
+--- Temporarily treats `_` as part of a keyword, matching the original SearchCurrentWord().
+function M.search_current_word()
+  local saved_iskeyword = vim.bo.iskeyword
+  vim.bo.iskeyword = vim.bo.iskeyword .. ",_"
+  local word = vim.fn.expand("&lt;cword&gt;")
+  vim.bo.iskeyword = saved_iskeyword
+
+  require("telescope.builtin").grep_string({ search = word })
+end
+
+--- Visual-mode equivalent: grep the visually selected text.
+function M.search_visual_selection()
+  local saved = vim.fn.getreg("v")
+  vim.cmd('normal! gv"vy')
+  local text = vim.fn.getreg("v")
+  vim.fn.setreg("v", saved)
+  require("telescope.builtin").grep_string({ search = text })
+end
+
+--- Find a file whose name matches the word under the cursor, filtered to the current
+--- buffer's extension, via Telescope (replaces FindFileByWord()/fzf).
+function M.find_file_by_word()
+  local saved_iskeyword = vim.bo.iskeyword
+  vim.bo.iskeyword = vim.bo.iskeyword .. ",_"
+  local word = vim.fn.expand("&lt;cword&gt;")
+  vim.bo.iskeyword = saved_iskeyword
+
+  if word == "" then
+    vim.notify("No word under cursor", vim.log.levels.WARN)
+    return
+  end
+
+  local ext = vim.fn.expand("%:e")
+  local target = ext ~= "" and (word .. "." .. ext) or word
+
+  require("telescope.builtin").find_files({ default_text = target })
+end
+
+--- List project files the same way Telescope/fzf does ($FZF_DEFAULT_COMMAND).
+local function project_file_list()
+  if not vim.env.FZF_DEFAULT_COMMAND then
+    return {}
+  end
+  local files = vim.fn.systemlist(vim.env.FZF_DEFAULT_COMMAND)
+  if vim.v.shell_error ~= 0 then
+    return {}
+  end
+  return files
+end
+
+--- Open the project file named exactly `target` (basename match). Single
+--- match: opens it directly. Multiple matches: opens a Telescope picker
+--- pre-filled so the user can disambiguate. Returns true if it navigated
+--- anywhere, false if there was no match at all.
+local function goto_single_file(target)
+  local matches = {}
+  for _, f in ipairs(project_file_list()) do
+    if vim.fn.fnamemodify(f, ":t") == target then
+      table.insert(matches, f)
+    end
+  end
+
+  if #matches == 1 then
+    vim.cmd("edit " .. vim.fn.fnameescape(matches[1]))
+    return true
+  elseif #matches &gt; 1 then
+    require("telescope.builtin").find_files({ default_text = target })
+    return true
+  end
+  return false
+end
+
+--- Per-filetype "run current file" dispatch table (ported from File_cmd()).
+local executors = {
+  py = "!python3 %",
+  js = "!node %",
+  scala = "!scala %",
+  sh = "!chmod +x % &amp;&amp; ./%",
+  [""] = "!chmod +x % &amp;&amp; ./%",
+  cpp = "!g++ % &amp;&amp; ./a.out &amp;&amp; rm a.out",
+  go = "!go run %",
+  rs = "!cargo run %",
+  c = "!gcc % &amp;&amp; ./a.out &amp;&amp; rm a.out",
+  tcl = "!tclsh %",
+  ts = "!tsc % &amp;&amp; node %:r.js &amp;&amp; rm %:r.js",
+  hs = "!ghc -o %:r % &amp;&amp; ./%:r &amp;&amp; rm %:r &amp;&amp; rm %:r.hi &amp;&amp; rm %:r.o",
+  md = "!glow %",
+  cmd = "!glow %",
+}
+
+function M.file_cmd()
+  vim.cmd("write")
+  local ext = vim.fn.expand("%:e")
+
+  if ext == "java" then
+    if vim.fn.expand("%"):lower() == "main.java" then
+      vim.cmd("!javac % &amp;&amp; java main &amp;&amp; rm *.class")
+    else
+      vim.cmd("!mvn test -Dcheckstyle.skip=true -Dtest=" .. vim.fn.expand("%:t:r") .. "Test")
+    end
+    return
+  end
+
+  local cmd = executors[ext]
+  if cmd then
+    vim.cmd(cmd)
+  else
+    vim.notify("No executor defined for filetype: " .. ext, vim.log.levels.WARN)
+  end
+end
+
+function M.file_name_cmd()
+  vim.cmd("write")
+  if vim.fn.expand("%:e"):lower() == "py" then
+    vim.cmd("!python3 main.py")
+  end
+end
+
+--- Per-filetype test runner dispatch table (ported from Test_cmd()).
+local testers = {
+  py = "!pytest tests",
+  go = "!go test",
+}
+
+function M.test_cmd()
+  vim.cmd("write")
+  local ext = vim.fn.expand("%:e")
+  local cmd = testers[ext]
+  if cmd then
+    vim.cmd(cmd)
+  else
+    vim.notify("No tester defined for filetype: " .. ext, vim.log.levels.WARN)
+  end
+end
+
+--- True when the current buffer looks like a Cucumber JUnit runner class
+--- (@RunWith(Cucumber.class) or a JUnit5 @Suite with @IncludeEngines("cucumber")).
+local function is_cucumber_runner()
+  return vim.fn.search([[@RunWith(Cucumber\.class)\|IncludeEngines(.cucumber.)]], "nw") &gt; 0
+end
+
+--- Build the shell command to run a Java test, preferring a gradle
+--- wrapper/gradle over maven when the project has one (searched upward
+--- from the current file). method_name may be nil to run the whole class.
+local function java_test_command(class_name, method_name)
+  local gradlew = vim.fn.findfile("gradlew", ".;")
+  local gradle_build = gradlew == ""
+    and (vim.fn.findfile("build.gradle", ".;") ~= "" and vim.fn.findfile("build.gradle", ".;")
+      or vim.fn.findfile("build.gradle.kts", ".;"))
+    or ""
+
+  if gradlew ~= "" or gradle_build ~= "" then
+    local gradle_bin = gradlew ~= "" and vim.fn.fnamemodify(gradlew, ":p") or "gradle"
+    local pattern = method_name and ("*." .. class_name .. "." .. method_name) or ("*." .. class_name)
+    local cmd = string.format('!%s test --tests "%s"', gradle_bin, pattern)
+    -- Avoid instantiating a Cucumber JUnit runner (and running the whole
+    -- feature suite as a side effect) when targeting an unrelated class.
+    if not is_cucumber_runner() then
+      cmd = cmd .. " -PexcludeCucumber"
+    end
+    return cmd
+  end
+
+  if method_name then
+    return "!mvn test -Dcheckstyle.skip=true -Dtest=" .. class_name .. "#" .. method_name
+  end
+  return "!mvn test -Dcheckstyle.skip=true -Dtest=" .. class_name
+end
+
+--- Find the test function enclosing the cursor and run just that one;
+--- falls back to whole file/dir (test_cmd) if the cursor isn't inside a
+--- recognizable test. Ported from TestUnderCursor() in .vimrc, plus a
+--- neovim-only addition: if the current buffer is a source file (not a
+--- test file), jump to its test file if one exists in the project; if
+--- none does, warn instead of running the test command against the
+--- source file itself (which has no @Test/test_ methods and just fails).
+function M.test_under_cursor()
+  vim.cmd("write")
+  local ext = vim.fn.expand("%:e")
+
+  if ext == "py" then
+    local base = vim.fn.expand("%:t:r")
+    local is_test_file = base:match("^test_") or base:match("_test$")
+    if not is_test_file then
+      if goto_single_file("test_" .. base .. ".py") then
+        return
+      end
+      if goto_single_file(base .. "_test.py") then
+        return
+      end
+      vim.notify("No test file found for " .. base .. ".py", vim.log.levels.WARN)
+      return
+    end
+    M.run_python_test_under_cursor()
+  elseif ext == "java" then
+    local class_name = vim.fn.expand("%:t:r")
+    if not class_name:match("Test$") then
+      if goto_single_file(class_name .. "Test.java") then
+        return
+      end
+      vim.notify("No test file found for " .. class_name .. ".java", vim.log.levels.WARN)
+      return
+    end
+    M.run_java_test_under_cursor()
+  else
+    M.test_cmd()
+  end
+end
+
+function M.run_python_test_under_cursor()
+  local lnum = vim.fn.search([[^\s*def\s\+test_\w*\s*(]], "bcnW")
+  if lnum &lt;= 0 then
+    vim.cmd("!pytest tests")
+    return
+  end
+
+  local def_line = vim.fn.getline(lnum)
+  local test_name = def_line:match("^%s*def%s+(test_%w*)%s*%(")
+  local indent = def_line:match("^%s*")
+  local class_name = nil
+
+  if indent ~= "" then
+    local clnum = lnum - 1
+    while clnum &gt; 0 do
+      local cline = vim.fn.getline(clnum)
+      if cline:match("^%S") then
+        class_name = cline:match("^class%s+(%w+)")
+        break
+      end
+      clnum = clnum - 1
+    end
+  end
+
+  local target = vim.fn.expand("%")
+  if class_name then
+    target = target .. "::" .. class_name .. "::" .. test_name
+  else
+    target = target .. "::" .. test_name
+  end
+  vim.cmd("!pytest " .. vim.fn.shellescape(target))
+end
+
+--- True when jdtls is attached *and* has actually activated the java-test
+--- bundle wired in via init_options.bundles (see after/ftplugin/java.lua).
+--- Mirrors the same executeCommandProvider check nvim-jdtls's own
+--- fetch_candidates() does before calling test_nearest_method()/test_class(),
+--- rather than just checking that those functions exist: the bundle can be
+--- present on disk and still fail to activate server-side (e.g. an
+--- OSGi dependency-version mismatch between jdtls and the java-test jars --
+--- happened in practice, see the comment on the version pin in
+--- lua/plugins/jdtls.lua), in which case calling them just prints a warning
+--- and does nothing instead of running the test. Checking the actual
+--- server-advertised commands means this falls back to the gradle/maven
+--- shell command below whenever the fast path wouldn't really work, instead
+--- of leaving &lt;leader&gt;t/&lt;C-t&gt; silently broken until that gets sorted out.
+local function jdtls_test_runner_available()
+  local clients = vim.lsp.get_clients({ bufnr = 0, name = "jdtls" })
+  if #clients == 0 then
+    return false
+  end
+  local provider = clients[1].server_capabilities.executeCommandProvider
+  local commands = type(provider) == "table" and provider.commands or {}
+  return vim.tbl_contains(commands, "vscode.java.test.search.codelens")
+    or vim.tbl_contains(commands, "vscode.java.test.findTestTypesAndMethods")
+end
+
+function M.run_java_test_under_cursor()
+  local class_name = vim.fn.expand("%:t:r")
+  local lnum = vim.fn.line(".")
+  local method_name = nil
+
+  while lnum &gt; 0 do
+    local line = vim.fn.getline(lnum)
+    -- matches optional access modifier/static, then "void name(" e.g.
+    -- "public void foo(" or "static void foo(" or "void foo("
+    local candidate = line:match("^%s*[%w%s]-void%s+([%w_]+)%s*%(")
+    if candidate then
+      local alnum = lnum - 1
+      local is_test = false
+      while alnum &gt; 0 do
+        local aline = vim.fn.getline(alnum)
+        if aline:match("^%s*@Test") then
+          is_test = true
+          break
+        elseif aline:match("^%s*@") or aline:match("^%s*$") then
+          alnum = alnum - 1
+        else
+          break
+        end
+      end
+      if is_test then
+        method_name = candidate
+        break
+      end
+    end
+    lnum = lnum - 1
+  end
+
+  -- Prefer jdtls's own test runner: it compiles+runs directly against
+  -- jdtls's incremental build output over DAP (the IntelliJ-style fast
+  -- path), instead of shelling out to a fresh `gradlew test` process.
+  -- Falls back to the gradle/maven shell command below when jdtls isn't
+  -- attached yet or its bundles aren't installed.
+  if jdtls_test_runner_available() then
+    local jdtls = require("jdtls")
+    -- console = "internalConsole" (rather than nvim-jdtls's default, which
+    -- falls through to java-debug's own default of "integratedTerminal")
+    -- routes test output through DAP's own output events straight into
+    -- dap-repl, instead of java-debug asking nvim-dap to spawn a terminal
+    -- via a runInTerminal reverse request -- which failed outright here:
+    -- "Failed to launch debuggee in terminal ... TimeoutException: timeout".
+    local opts = { config_overrides = { noDebug = true, console = "internalConsole" } }
+
+    -- Opened here rather than relying on dap.listeners.after.event_initialized
+    -- (see lua/plugins/dap.lua): that event doesn't reliably fire for noDebug
+    -- "run" launches like this one, since there's nothing to configure
+    -- breakpoints against -- so the auto-open there covers &lt;leader&gt;td
+    -- (debug, below) but not this fast path.
+    require("dap.repl").open()
+
+    if method_name then
+      jdtls.test_nearest_method(opts)
+    else
+      jdtls.test_class(opts)
+    end
+    return
+  end
+
+  vim.cmd(java_test_command(class_name, method_name))
+end
+
+return M
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-colorscheme-lua">
+<summary><code>lua/plugins/colorscheme.lua</code></summary>
+<pre><code>return {
+  "ellisonleao/gruvbox.nvim",
+  enabled = true,
+  lazy = false,
+  priority = 1000,
+  config = function()
+    require("gruvbox").load()
+  end,
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-treesitter-lua">
+<summary><code>lua/plugins/treesitter.lua</code></summary>
+<pre><code>-- nvim-treesitter's "main" branch (the current, actively-developed API as of
+-- this writing) replaces the old `.configs` module with `.setup()`/`.install()`
+-- plus an explicit `vim.treesitter.start()` per filetype.
+
+-- Parser names (for :TSInstall) vs. filetype names (for the FileType autocmd)
+-- differ for a few of these (vimdoc-&gt;help, bash-&gt;sh, tsx-&gt;typescriptreact).
+local parsers = {
+  "java", "python", "lua", "vim", "vimdoc", "bash",
+  "json", "yaml", "markdown", "typescript", "tsx", "javascript",
+}
+local filetypes = {
+  "java", "python", "lua", "vim", "help", "sh",
+  "json", "yaml", "markdown", "typescript", "typescriptreact", "javascript",
+}
+
+return {
+  "nvim-treesitter/nvim-treesitter",
+  branch = "main",
+  build = ":TSUpdate",
+  event = { "BufReadPost", "BufNewFile" },
+  config = function()
+    require("nvim-treesitter").setup()
+    require("nvim-treesitter").install(parsers)
+
+    vim.api.nvim_create_autocmd("FileType", {
+      pattern = filetypes,
+      callback = function(args)
+        -- pcall guards the first-ever launch, where a parser may still be
+        -- downloading/compiling asynchronously from the `install()` call above.
+        if pcall(vim.treesitter.start, args.buf) then
+          vim.wo.foldmethod = "expr"
+          vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+          vim.bo[args.buf].indentexpr = "v:lua.require('nvim-treesitter').indentexpr()"
+        end
+      end,
+    })
+  end,
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-telescope-lua">
+<summary><code>lua/plugins/telescope.lua</code></summary>
+<pre><code>return {
+  "nvim-telescope/telescope.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+  },
+  cmd = "Telescope",
+  config = function()
+    local telescope = require("telescope")
+    local actions = require("telescope.actions")
+    telescope.setup({
+      defaults = {
+        vimgrep_arguments = {
+          "rg", "--color=never", "--no-heading", "--with-filename",
+          "--line-number", "--column", "--smart-case", "--hidden",
+          "--glob", "!.git",
+        },
+        -- Telescope's own defaults leave &lt;C-j&gt;/&lt;C-k&gt; as a no-op / preview-scroll
+        -- in insert mode (only &lt;C-n&gt;/&lt;C-p&gt; and the arrows move the selection by
+        -- default) -- rebind them to the more familiar vim-style up/down.
+        mappings = {
+          i = {
+            ["&lt;C-j&gt;"] = actions.move_selection_next,
+            ["&lt;C-k&gt;"] = actions.move_selection_previous,
+          },
+        },
+      },
+    })
+    pcall(telescope.load_extension, "fzf")
+  end,
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-lsp-lua">
+<summary><code>lua/plugins/lsp.lua</code></summary>
+<pre><code>return {
+  {
+    "williamboman/mason.nvim",
+    config = true,
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    event = { "BufReadPre", "BufNewFile" },
+    dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig", "hrsh7th/cmp-nvim-lsp" },
+    config = function()
+      vim.lsp.config("*", {
+        capabilities = require("cmp_nvim_lsp").default_capabilities(),
+      })
+
+      -- cucumber_language_server's built-in defaults already look for features
+      -- under src/test/**/*.feature and glue (step definitions) under
+      -- src/test/**/*.java, which matches every Cucumber-JVM project on this
+      -- machine with no extra settings needed -- *except* that its default
+      -- root marker is just .git, which breaks for a Gradle/Maven module
+      -- nested inside a larger monorepo (e.g. ~/dev/sorg/server, whose .git
+      -- is two levels up at ~/dev/sorg): the globs then get evaluated from
+      -- the wrong root and never reach the module's own src/test. Widening
+      -- root_markers to also stop at a build file finds the actual module
+      -- root first, same fix as jdtls uses in after/ftplugin/java.lua.
+      vim.lsp.config("cucumber_language_server", {
+        root_markers = { "pom.xml", "build.gradle", "build.gradle.kts", "mvnw", "gradlew", ".git" },
+      })
+
+      require("mason-lspconfig").setup({
+        -- It attaches to filetype "cucumber", which config/autocmds.lua
+        -- already maps *.feature to.
+        ensure_installed = { "pyright", "ruff", "lua_ls", "cucumber_language_server" },
+        -- jdtls is started manually per-buffer via nvim-jdtls in
+        -- after/ftplugin/java.lua (needs custom root_dir/workspace/settings),
+        -- so it must not be auto-enabled through the generic handler here.
+        automatic_enable = { exclude = { "jdtls" } },
+      })
+    end,
+  },
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-completion-lua">
+<summary><code>lua/plugins/completion.lua</code></summary>
+<pre><code>return {
+  "hrsh7th/nvim-cmp",
+  event = "InsertEnter",
+  dependencies = {
+    "hrsh7th/cmp-nvim-lsp",
+    "hrsh7th/cmp-buffer",
+    "hrsh7th/cmp-path",
+    "L3MON4D3/LuaSnip",
+    "saadparwaiz1/cmp_luasnip",
+  },
+  config = function()
+    local cmp = require("cmp")
+    local luasnip = require("luasnip")
+
+    cmp.setup({
+      snippet = {
+        expand = function(args)
+          luasnip.lsp_expand(args.body)
+        end,
+      },
+      mapping = cmp.mapping.preset.insert({
+        ["&lt;C-Space&gt;"] = cmp.mapping.complete(),
+        ["&lt;CR&gt;"] = cmp.mapping.confirm({ select = false }),
+        ["&lt;Tab&gt;"] = cmp.mapping(function(fallback)
+          if cmp.visible() then
+            cmp.select_next_item()
+          elseif luasnip.expand_or_jumpable() then
+            luasnip.expand_or_jump()
+          else
+            fallback()
+          end
+        end, { "i", "s" }),
+        ["&lt;S-Tab&gt;"] = cmp.mapping(function(fallback)
+          if cmp.visible() then
+            cmp.select_prev_item()
+          elseif luasnip.jumpable(-1) then
+            luasnip.jump(-1)
+          else
+            fallback()
+          end
+        end, { "i", "s" }),
+      }),
+      sources = cmp.config.sources({
+        { name = "nvim_lsp" },
+        { name = "luasnip" },
+      }, {
+        { name = "buffer" },
+        { name = "path" },
+      }),
+    })
+  end,
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-jdtls-lua">
+<summary><code>lua/plugins/jdtls.lua</code></summary>
+<pre><code>return {
+  "mfussenegger/nvim-jdtls",
+  ft = "java",
+  dependencies = { "williamboman/mason.nvim", "mfussenegger/nvim-dap" },
+  config = function()
+    -- Ensure the jdtls launcher and its debug adapter are installed via
+    -- Mason. jdtls itself is started manually per-buffer (not through
+    -- mason-lspconfig's ensure_installed in lua/plugins/lsp.lua), and
+    -- java-debug-adapter is a plain jar bundle wired into it via
+    -- init_options in after/ftplugin/java.lua, not an LSP server itself.
+    local ok, registry = pcall(require, "mason-registry")
+    if ok then
+      for _, name in ipairs({ "jdtls", "java-debug-adapter" }) do
+        local installed_ok, pkg = pcall(registry.get_package, name)
+        if installed_ok and not pkg:is_installed() then
+          pkg:install()
+        end
+      end
+    end
+
+    -- The JUnit test-runner (vscode-java-test) bundle is deliberately
+    -- *not* Mason-managed -- see util/java_test_bundles.lua for the full
+    -- story on why (ASM version drift between jdtls and java-test releases,
+    -- plus Mason itself serving stale cached jar content in practice) and
+    -- what to do if this ever needs re-pinning. Fetched (once, cached
+    -- after) into stdpath("data") rather than committed into this repo, so
+    -- the dotfiles repo itself stays free of binary blobs.
+    require("util.java_test_bundles").ensure_installed(
+      vim.fn.stdpath("data") .. "/java-test-bundles/" .. require("util.java_test_bundles").VERSION
+    )
+  end,
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-conform-lua">
+<summary><code>lua/plugins/conform.lua</code></summary>
+<pre><code>return {
+  "stevearc/conform.nvim",
+  ft = "python",
+  opts = {
+    formatters_by_ft = {
+      python = { "black" },
+    },
+  },
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-dap-lua">
+<summary><code>lua/plugins/dap.lua</code></summary>
+<pre><code>return {
+  {
+    "mfussenegger/nvim-dap",
+  },
+  {
+    "rcarriga/nvim-dap-ui",
+    dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
+    config = function()
+      local dapui = require("dapui")
+      dapui.setup()
+
+      -- Auto open/close the UI around a debug session, same as most IDEs.
+      -- dap-repl is opened separately from dapui.open(): it's nvim-dap's own
+      -- REPL buffer, not one of dapui's panels, and it's specifically where
+      -- jdtls's junit runner (see lua/plugins/jdtls.lua) prints test results
+      -- ("Tests finished. Results printed to dap-repl.") -- without this it
+      -- never surfaces on its own, so the results are easy to miss entirely.
+      local dap = require("dap")
+      dap.listeners.after.event_initialized["dapui_config"] = function()
+        dapui.open()
+        require("dap.repl").open()
+      end
+      dap.listeners.before.event_terminated["dapui_config"] = dapui.close
+      dap.listeners.before.event_exited["dapui_config"] = dapui.close
+
+      -- dap-repl ships with no syntax highlighting of its own, so the
+      -- "✓ testName"/"✗ testName" lines jdtls's junit runner prints per
+      -- result (see lua/jdtls/junit.lua) render as plain text. A `:syntax
+      -- match` rule doesn't survive here -- dap.repl.open() re-triggers
+      -- FileType on every call as part of its window setup, and Neovim's
+      -- own filetype-&gt;syntax machinery resets buffer syntax state deep
+      -- inside that dance (no traceable :syntax clear, just gone by the
+      -- time open() returns). Extmarks applied per line as text arrives
+      -- sidestep the legacy syntax engine entirely, so nothing can reset
+      -- them from under us.
+      local test_line_ns = vim.api.nvim_create_namespace("dap_repl_test_lines")
+      local function highlight_test_lines(buf, firstline, new_lastline)
+        for lnum = firstline, new_lastline - 1 do
+          local line = vim.api.nvim_buf_get_lines(buf, lnum, lnum + 1, false)[1]
+          local hl_group
+          if line then
+            if vim.startswith(line, "✓") then
+              hl_group = "DiagnosticOk"
+            elseif vim.startswith(line, "✗") then
+              hl_group = "DiagnosticError"
+            end
+          end
+          if hl_group then
+            vim.api.nvim_buf_set_extmark(buf, test_line_ns, lnum, 0, {
+              end_row = lnum + 1,
+              hl_group = hl_group,
+              hl_eol = true,
+            })
+          end
+        end
+      end
+
+      -- q closes the dap-repl window. Normal-mode only, so it doesn't
+      -- interfere with actually typing an expression into the prompt.
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "dap-repl",
+        callback = function(args)
+          vim.keymap.set("n", "q", "&lt;cmd&gt;close&lt;CR&gt;", { buffer = args.buf })
+
+          -- open() re-fires FileType on every call, so guard against
+          -- attaching this listener to the same buffer more than once.
+          if vim.b[args.buf].dap_repl_test_colors_attached then
+            return
+          end
+          vim.b[args.buf].dap_repl_test_colors_attached = true
+          vim.api.nvim_buf_attach(args.buf, false, {
+            on_lines = function(_, buf, _, firstline, _, new_lastline)
+              highlight_test_lines(buf, firstline, new_lastline)
+            end,
+          })
+        end,
+      })
+    end,
+  },
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-gitsigns-lua">
+<summary><code>lua/plugins/gitsigns.lua</code></summary>
+<pre><code>return {
+  "lewis6991/gitsigns.nvim",
+  event = "BufReadPre",
+  opts = {},
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-toggleterm-lua">
+<summary><code>lua/plugins/toggleterm.lua</code></summary>
+<pre><code>return {
+  "akinsho/toggleterm.nvim",
+  cmd = { "ToggleTerm", "TermExec" },
+  keys = { "&lt;C-\\&gt;", "&lt;C-'&gt;", "&lt;leader&gt;'" },
+  opts = {
+    open_mapping = [[&lt;c-\&gt;]],
+    direction = "float",
+    shell = "/bin/zsh",
+  },
+  config = function(_, opts)
+    require("toggleterm").setup(opts)
+
+    -- Match the global &lt;C-h/j/k/l&gt; window-nav mappings inside terminal buffers,
+    -- and make it quick to drop back to Normal mode.
+    vim.api.nvim_create_autocmd("TermOpen", {
+      pattern = "term://*toggleterm#*",
+      callback = function(args)
+        local map_opts = { buffer = args.buf }
+        vim.keymap.set("t", "&lt;Esc&gt;", [[&lt;C-\&gt;&lt;C-n&gt;]], map_opts)
+        vim.keymap.set("t", "&lt;C-h&gt;", [[&lt;C-\&gt;&lt;C-n&gt;&lt;C-W&gt;&lt;C-h&gt;]], map_opts)
+        vim.keymap.set("t", "&lt;C-j&gt;", [[&lt;C-\&gt;&lt;C-n&gt;&lt;C-W&gt;&lt;C-j&gt;]], map_opts)
+        vim.keymap.set("t", "&lt;C-k&gt;", [[&lt;C-\&gt;&lt;C-n&gt;&lt;C-W&gt;&lt;C-k&gt;]], map_opts)
+        vim.keymap.set("t", "&lt;C-l&gt;", [[&lt;C-\&gt;&lt;C-n&gt;&lt;C-W&gt;&lt;C-l&gt;]], map_opts)
+      end,
+    })
+
+    -- A dedicated, persistent terminal for the `ai` alias (nvim-native
+    -- counterpart to the tmux popup in bin/tmux-popup): toggling it closed
+    -- doesn't kill the underlying job, just hides the window, so the
+    -- conversation survives until this nvim instance quits. Scoped to this
+    -- one nvim process only -- unlike the tmux version, it won't survive
+    -- nvim exiting/crashing and isn't reachable from any other pane/session.
+    -- `zsh -ic` (not a plain `cmd = "ai"`) is needed because toggleterm spawns
+    -- via `termopen()`, which runs the command through a non-interactive
+    -- `zsh -c`, and .zshrc (where the alias lives) is only sourced for
+    -- interactive shells.
+    local Terminal = require("toggleterm.terminal").Terminal
+    local ai_term = Terminal:new({
+      cmd = "zsh -ic 'ai'",
+      direction = "float",
+      hidden = true,
+    })
+    for _, lhs in ipairs({ "&lt;C-'&gt;", "&lt;leader&gt;'" }) do
+      vim.keymap.set({ "n", "t" }, lhs, function()
+        ai_term:toggle()
+      end, { desc = "Toggle persistent ai (Claude) terminal" })
+    end
+  end,
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-editing-lua">
+<summary><code>lua/plugins/editing.lua</code></summary>
+<pre><code>return {
+  { "tpope/vim-surround", event = "VeryLazy" },
+  { "tpope/vim-fugitive", cmd = { "Git", "Gdiffsplit", "Gvdiffsplit" } },
+  { "tpope/vim-commentary", event = "VeryLazy" },
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-plugins-misc-lua">
+<summary><code>lua/plugins/misc.lua</code></summary>
+<pre><code>return {
+  { "junegunn/goyo.vim", cmd = "Goyo" },
+  { "lervag/vimtex", ft = "tex" },
+}
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-util-jdtls_settings-lua">
+<summary><code>lua/util/jdtls_settings.lua</code></summary>
+<pre><code>-- Per-project overrides for jdtls' `java.completion.importOrder`, which
+-- controls the grouping/order used by "Organize Imports" and import completion.
+--
+-- None of the checkstyle.xml files on this machine currently define an
+-- `ImportOrder`/`CustomImportOrder` module (only AvoidStarImport/RedundantImport/
+-- UnusedImports), so there's no concrete project convention to mirror yet.
+-- DEFAULT is a reasonable placeholder grouping used until one exists.
+--
+-- Once a project defines a real checkstyle ImportOrder module, add an entry
+-- here keyed by a substring of the project root path, e.g.:
+--   overrides["/Users/shane/dev/somejavaproj"] = { "java", "javax", "com.company", "" }
+-- (an empty string group is a catch-all for anything not matched above it)
+
+local M = {}
+
+local DEFAULT_IMPORT_ORDER = { "java", "javax", "org", "com" }
+
+local overrides = {
+  -- ["/Users/shane/dev/someproject"] = { "java", "javax", "com.company", "" },
+}
+
+function M.import_order(root_dir)
+  for path_substring, order in pairs(overrides) do
+    if root_dir and root_dir:find(path_substring, 1, true) then
+      return order
+    end
+  end
+  return DEFAULT_IMPORT_ORDER
+end
+
+return M
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lua-util-java_test_bundles-lua">
+<summary><code>lua/util/java_test_bundles.lua</code></summary>
+<pre><code>-- Fetches and verifies the pinned vscode-java-test server jars jdtls needs
+-- for its JUnit test runner (test_class()/test_nearest_method(), wired in
+-- via ../plugins/jdtls.lua and ../../after/ftplugin/java.lua). Called from
+-- that plugin's config() the first time a Java buffer is opened on a
+-- machine that doesn't have them cached yet; a no-op after that.
+--
+-- Why this exists instead of letting Mason install "java-test" directly:
+-- Mason's own resolution for that package proved unreliable in practice --
+-- across several version-pin attempts it silently served jar content that
+-- didn't match the version its own receipt claimed (verified by hash), and
+-- its "latest" lagged behind what open-vsx.org actually listed as current.
+--
+-- Why a *pinned* version instead of always fetching "latest": different
+-- java-test releases pin different (and sometimes incompatible)
+-- org.objectweb.asm version ranges against whatever ASM jdtls itself
+-- bundles. 0.46.0 was verified (by hand, inspecting its OSGi manifest) to
+-- require ASM [9.10.1,9.11.0) -- an exact match for the ASM the current
+-- jdtls snapshot bundles. If jdtls's bundled ASM version ever moves and
+-- test running silently stops working again (test_nearest_method() erroring
+-- with "No LSP client found that supports resolving possible test cases"),
+-- that's the compatibility axis to re-check: find whichever java-test
+-- release's com.microsoft.java.test.plugin manifest matches the new ASM
+-- version, and repin VERSION + EXPECTED_SHA256 below to match.
+--
+-- Why checksums instead of trusting the download as-is: open-vsx serves
+-- jar content under a version tag that isn't actually guaranteed immutable
+-- (the inner plugin jar's own filename stayed "0.43.1" across several
+-- outer releases with materially different content), so "the version
+-- string matches" isn't good enough evidence that this download is safe to
+-- hand to jdtls -- verify the exact bytes instead.
+--
+-- The runner fat-jar and jacoco agent are intentionally excluded: neither
+-- is a real OSGi bundle, and including them breaks OSGi resolution for the
+-- rest of the set (see nvim-jdtls's README, "From source" bundle setup).
+
+local M = {}
+
+M.VERSION = "0.46.0"
+
+local URL = "https://open-vsx.org/api/vscjava/vscode-java-test/"
+  .. M.VERSION .. "/file/vscjava.vscode-java-test-" .. M.VERSION .. ".vsix"
+
+local EXCLUDE = {
+  ["jacocoagent.jar"] = true,
+  ["com.microsoft.java.test.runner-jar-with-dependencies.jar"] = true,
+}
+
+M.EXPECTED_SHA256 = {
+  ["com.microsoft.java.test.plugin-0.43.1.jar"] = "e01cc491d866f996499e8ee55d0c3d8ba4f6ec44053975b791e3d0d2c76044e6",
+  ["junit-jupiter-api_5.14.4.jar"] = "aa1ae085fd92dfdbf85d867e60e59adc599bac183b46fc7e0698198bf426ad3f",
+  ["junit-jupiter-api_6.0.1.jar"] = "a3ca8c7e567436093e4a6703d5d4aac02dbea36106ea32fd1367b56de20d4e02",
+  ["junit-jupiter-engine_5.14.4.jar"] = "e1e35cf651ae1635638d431ea4412d5c65938be54150444f07ba659586042b11",
+  ["junit-jupiter-engine_6.0.1.jar"] = "7476a56f4aaab57fc2f459847cd6bfb712b3bd04a9ac0b89ed9573f7adc2c550",
+  ["junit-jupiter-migrationsupport_5.14.4.jar"] = "814dc0557337208a4bbc2450c49c04cd1d2127f8a642a524aa35d37d279a0496",
+  ["junit-jupiter-params_5.14.4.jar"] = "28f2a8dab5b9d259b18fa6b0ba5a6f302cbc70dd875f42032ea9e3afea09a870",
+  ["junit-jupiter-params_6.0.1.jar"] = "9566e249b4d4c7d53a6c8908f577885ce2d4c6313c916bdfbf7ffbc526b8a36f",
+  ["junit-platform-commons_1.14.4.jar"] = "55c8a0c069ac1bc4e1f8bbb26b5eae95cbd10e4ff1b23248441ab61a607381e1",
+  ["junit-platform-commons_6.0.1.jar"] = "f8853f45c10f380ddb157cf42abba9b073474f05cc40335b585055f85538dcad",
+  ["junit-platform-engine_1.14.4.jar"] = "3c7f3f84a6747aef0db6bd5fdd2a6c8fe37132e653c939bd67387377af66d91c",
+  ["junit-platform-engine_6.0.1.jar"] = "f49577073a7ae184c718d9b43ae0d8edcb8abfc5ac738735ee3339d4652e92bf",
+  ["junit-platform-launcher_1.14.4.jar"] = "768d62f1b2a523713b702db53609c230af62bbd645fc2c07a7d794df4da32228",
+  ["junit-platform-launcher_6.0.1.jar"] = "ee758ddb06fab1fd1a890c0bae4aacf8dc004c4f367e138dbffcb113cd09ebac",
+  ["junit-platform-runner_1.14.4.jar"] = "bd7f09d24666a7c87f10029832652f7b2bf2211d1e6e0e08cfb885de68e2ff8f",
+  ["junit-platform-suite-api_1.14.4.jar"] = "7297640fea76410a63b7fad20b349cf0f6c23c3e93ea704c4056a2beb6dfd0a4",
+  ["junit-platform-suite-api_6.0.1.jar"] = "d79605e890a0b63c628cd7157451edc0ff94edaa8f527dfe53efb9b0f03002b6",
+  ["junit-platform-suite-commons_1.14.4.jar"] = "8790c345a319a9ec5247cd38f36a1f67256d0bcd9c112af8daa235812e1876d8",
+  ["junit-platform-suite-engine_1.14.4.jar"] = "be9d3d460d5e88b4d53f1e2e62f1b47354e23106e2a4fa4050a724c5d705b4d3",
+  ["junit-platform-suite-engine_6.0.1.jar"] = "80258fc6dbc08a6145daf2db1c2bac9c0f4ec628afeb802d130cc218578acd6c",
+  ["junit-vintage-engine_5.14.4.jar"] = "76317ecb621922d4c1430342285e4f7a75f0bf93e2528a8cf5004964fe5f8f8f",
+  ["org.apiguardian.api_1.1.2.jar"] = "b509448ac506d607319f182537f0b35d71007582ec741832a1f111e5b5b70b38",
+  ["org.eclipse.jdt.junit4.runtime_1.4.0.v20251113-1434.jar"] = "7d4dc5f688dffd5918a92e70e26394cafd3c0c824926a9d3d167a46f930ee9ed",
+  ["org.eclipse.jdt.junit5.runtime_1.2.0.v20251113-1434.jar"] = "4ef5247c2db2b5b70ca4377e2eca559647a61f52b084427d6ecc2d6d9aa80c02",
+  ["org.eclipse.jdt.junit6.runtime_1.0.0.v20251112-1701.jar"] = "ea5c107999b64395fba3d88b50caa0945ca7ac13b5883bb1f79d289075c9523e",
+  ["org.jacoco.core_0.8.15.202606040825.jar"] = "ade1e0fdb4cd80d8537b57c6edb70a1360c47fdc518c20c65314517479bc4d0d",
+  ["org.objectweb.asm_9.10.1.jar"] = "ed825d10ab1399c8c0cb669e688cf0c8c82629b4c8399b58352b68e92ca10fcb",
+  ["org.objectweb.asm.commons_9.10.1.jar"] = "6d0abefb7cbf972ea16edb37ec14835372505063a45f976ab7ea889ed9497895",
+  ["org.objectweb.asm.tree_9.10.1.jar"] = "3dfb0d5b6a106cd40b5b250e39935fbf2f927f4477546a5369a3ac609cf0506b",
+  ["org.opentest4j_1.3.0.jar"] = "48e2df636cab6563ced64dcdff8abb2355627cb236ef0bf37598682ddf742f1b",
+}
+
+local function sha256(path)
+  local out = vim.fn.system({ "shasum", "-a", "256", path })
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+  return out:match("^(%x+)")
+end
+
+--- True when `dest` already has every pinned jar.
+local function is_complete(dest)
+  for name, _ in pairs(M.EXPECTED_SHA256) do
+    if vim.fn.filereadable(dest .. "/" .. name) == 0 then
+      return false
+    end
+  end
+  return true
+end
+
+--- Synchronously ensures the pinned, checksum-verified jars exist at `dest`.
+--- No-ops (cheap: just file-existence checks, no network) once already
+--- fetched, so safe to call on every jdtls attach.
+---@param dest string
+---@return boolean success
+function M.ensure_installed(dest)
+  if is_complete(dest) then
+    return true
+  end
+
+  vim.notify("Fetching vscode-java-test " .. M.VERSION .. " bundles for jdtls (one-time)...", vim.log.levels.INFO)
+
+  local tmp = vim.fn.tempname()
+  vim.fn.mkdir(tmp, "p")
+  local vsix = tmp .. "/download.vsix"
+
+  vim.fn.system({ "curl", "-fsSL", URL, "-o", vsix })
+  if vim.v.shell_error ~= 0 then
+    vim.notify("java_test_bundles: download of " .. URL .. " failed", vim.log.levels.ERROR)
+    vim.fn.delete(tmp, "rf")
+    return false
+  end
+
+  vim.fn.system({ "unzip", "-q", vsix, "extension/server/*.jar", "-d", tmp })
+  if vim.v.shell_error ~= 0 then
+    vim.notify("java_test_bundles: extracting " .. vsix .. " failed", vim.log.levels.ERROR)
+    vim.fn.delete(tmp, "rf")
+    return false
+  end
+
+  vim.fn.mkdir(dest, "p")
+  local installed = 0
+  for _, jar in ipairs(vim.fn.glob(tmp .. "/extension/server/*.jar", true, true)) do
+    local name = vim.fn.fnamemodify(jar, ":t")
+    if not EXCLUDE[name] then
+      local expected = M.EXPECTED_SHA256[name]
+      if expected then
+        local actual = sha256(jar)
+        if actual ~= expected then
+          vim.notify(string.format(
+            "java_test_bundles: checksum mismatch for %s (expected %s, got %s) -- refusing to install a jar"
+              .. " that doesn't match what was verified against jdtls's ASM version",
+            name, expected, tostring(actual)
+          ), vim.log.levels.ERROR)
+          vim.fn.delete(tmp, "rf")
+          return false
+        end
+        vim.uv.fs_copyfile(jar, dest .. "/" .. name)
+        installed = installed + 1
+      end
+    end
+  end
+
+  vim.fn.delete(tmp, "rf")
+
+  if not is_complete(dest) then
+    vim.notify("java_test_bundles: some pinned jars were missing from the downloaded archive", vim.log.levels.ERROR)
+    return false
+  end
+
+  vim.notify(string.format("java_test_bundles: installed %d jars to %s", installed, dest), vim.log.levels.INFO)
+  return true
+end
+
+return M
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-after-ftplugin-java-lua">
+<summary><code>after/ftplugin/java.lua</code></summary>
+<pre><code>-- Per-buffer jdtls setup. jdtls doesn't fit the normal global lspconfig
+-- pattern (each project needs its own workspace dir + root-relative import
+-- order), so it's started here rather than through lsp.lua.
+
+vim.bo.tabstop = 4
+vim.bo.softtabstop = 4
+vim.bo.shiftwidth = 4
+vim.bo.expandtab = true
+vim.bo.textwidth = 100
+
+local jdtls_ok, jdtls = pcall(require, "jdtls")
+if not jdtls_ok then
+  return
+end
+
+local jdtls_cmd = vim.fn.exepath("jdtls")
+if jdtls_cmd == "" then
+  -- Mason hasn't finished installing jdtls yet (first run); nothing to attach to.
+  return
+end
+
+local root_dir = require("jdtls.setup").find_root({ ".git", "mvnw", "gradlew", "pom.xml", "build.gradle", "build.gradle.kts" })
+if not root_dir then
+  return
+end
+
+local project_name = vim.fn.fnamemodify(root_dir, ":p:h:t")
+local workspace_dir = vim.fn.stdpath("data") .. "/site/java/workspace-" .. project_name
+
+-- Mason's jdtls package bundles a Lombok agent jar; without loading it as a
+-- javaagent, jdtls can't see Lombok-generated methods (getters/setters/
+-- builders/etc.) and reports them as errors. --jvm-arg is the jdtls launcher
+-- wrapper's supported way to pass through raw JVM options (must use `=`).
+local cmd = { jdtls_cmd, "-data", workspace_dir }
+local lombok_jar = vim.fn.stdpath("data") .. "/mason/packages/jdtls/lombok.jar"
+if vim.uv.fs_stat(lombok_jar) then
+  table.insert(cmd, "--jvm-arg=-javaagent:" .. lombok_jar)
+end
+
+-- Debug adapter (Mason-installed, lua/plugins/jdtls.lua) + JUnit test-runner
+-- (fetched on demand, see util/java_test_bundles.lua for the version-pin
+-- story) bundles. Wiring these into init_options.bundles is what unlocks
+-- jdtls's own test_class()/test_nearest_method(): they compile and run
+-- tests directly against jdtls's incremental build output over DAP, the
+-- same "skip the build tool" path IntelliJ's test runner uses, instead of
+-- shelling out to `gradlew test` (see lua/config/functions.lua).
+local java_test_bundles = require("util.java_test_bundles")
+local bundles = {}
+vim.list_extend(bundles, vim.fn.glob(
+  vim.fn.stdpath("data") .. "/mason/packages/java-debug-adapter/extension/server/com.microsoft.java.debug.plugin-*.jar",
+  true, true
+))
+vim.list_extend(bundles, vim.fn.glob(
+  vim.fn.stdpath("data") .. "/java-test-bundles/" .. java_test_bundles.VERSION .. "/*.jar",
+  true, true
+))
+
+require("jdtls").start_or_attach({
+  cmd = cmd,
+  root_dir = root_dir,
+  capabilities = require("cmp_nvim_lsp").default_capabilities(),
+  init_options = {
+    bundles = bundles,
+  },
+  settings = {
+    java = {
+      signatureHelp = { enabled = true },
+      completion = {
+        importOrder = require("util.jdtls_settings").import_order(root_dir),
+      },
+      configuration = {
+        updateBuildConfiguration = "interactive",
+      },
+    },
+  },
+  on_attach = function(_, bufnr)
+    -- Ported from the old .vim/ftplugin/java.vim FinalField(): insert `final`
+    -- before the word under the cursor, then move down 2 lines.
+    vim.keymap.set("n", "&lt;leader&gt;fa", function()
+      vim.cmd("normal! 0ea final")
+      vim.cmd("normal! jj")
+    end, { buffer = bufnr })
+
+    vim.keymap.set(
+      "i",
+      "&lt;leader&gt;cc",
+      'private static final Clock CLOCK = Clock.fixed(Instant.parse("2020-06-04T14:30:30.000Z"), ZoneId.of("UTC"));',
+      { buffer = bufnr }
+    )
+
+    -- Registers the "Launch"/"Attach" dap configurations jdtls needs and
+    -- points test_class()/test_nearest_method() at the bundles above.
+    -- Safe to call on every attach; jdtls dedupes internally.
+    require("jdtls").setup_dap({ hotcodereplace = "auto" })
+    require("jdtls.dap").setup_dap_main_class_configs()
+
+    -- Nearest-method running lives on &lt;leader&gt;t/&lt;C-t&gt; (functions.lua's
+    -- run_java_test_under_cursor()), which takes the same fast jdtls/DAP
+    -- path when available -- no separate binding needed for that case.
+    --
+    -- console = "internalConsole" routes output through DAP's own output
+    -- events into dap-repl, instead of java-debug's default of asking
+    -- nvim-dap to spawn a terminal via a runInTerminal reverse request --
+    -- which can time out outright ("Failed to launch debuggee in terminal
+    -- ... TimeoutException: timeout") depending on the terminal environment.
+    vim.keymap.set("n", "&lt;leader&gt;tc", function()
+      -- Opened explicitly: dap.listeners.after.event_initialized (see
+      -- lua/plugins/dap.lua) doesn't reliably fire for noDebug launches.
+      require("dap.repl").open()
+      require("jdtls").test_class({ config_overrides = { noDebug = true, console = "internalConsole" } })
+    end, { buffer = bufnr, desc = "Run Java test class" })
+
+    -- Debug variant: same path but leaves the debugger attached, so any
+    -- breakpoints set with &lt;leader&gt;b (see keymaps.lua) actually pause.
+    vim.keymap.set("n", "&lt;leader&gt;td", function()
+      require("jdtls").test_nearest_method({ config_overrides = { console = "internalConsole" } })
+    end, { buffer = bufnr, desc = "Debug nearest Java test" })
+  end,
+})
+
+-- Organize imports on save (replaces the old vim-java-unused-imports plugin:
+-- unused/missing imports now show as LSP diagnostics, fixed here automatically
+-- on save, or manually via &lt;leader&gt;ca for other code actions).
+--
+-- jdtls's own organize_imports() applies the edit asynchronously, which lands
+-- *after* :write already flushed the old content to disk (leaving the buffer
+-- dirty again right after saving). Requesting synchronously in BufWritePre
+-- applies the edit before the write proceeds, so the saved file is correct.
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*.java",
+  callback = function(args)
+    local clients = vim.lsp.get_clients({ bufnr = args.buf, name = "jdtls" })
+    if #clients == 0 then
+      return
+    end
+    local client = clients[1]
+    -- `0` is the "current window" sentinel here, not a bufnr (matches jdtls's
+    -- own make_code_action_params helper, which this mirrors).
+    local params = vim.lsp.util.make_range_params(0, client.offset_encoding)
+    params.context = { diagnostics = {} }
+    local resp = client:request_sync("java/organizeImports", params, 2000, args.buf)
+    if resp and resp.result then
+      vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding)
+    end
+  end,
+})
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-after-ftplugin-python-lua">
+<summary><code>after/ftplugin/python.lua</code></summary>
+<pre><code>-- Ported from dotfiles/.vim/ftplugin/python.vim
+
+vim.bo.tabstop = 4
+vim.bo.softtabstop = 4
+vim.bo.shiftwidth = 4
+vim.bo.expandtab = true
+vim.bo.autoindent = true
+vim.bo.textwidth = 79
+vim.bo.fileformat = "unix"
+vim.bo.formatprg = "black -q -"
+</code></pre>
+</details>
+
+<details class="replfile" id="repl-lazy-lock-json">
+<summary><code>lazy-lock.json</code></summary>
+<pre><code>{
+  "LuaSnip": { "branch": "master", "commit": "0abc8f390b278c3b4aabc4c004ac8a088b65cf24" },
+  "cmp-buffer": { "branch": "main", "commit": "b74fab3656eea9de20a9b8116afa3cfc4ec09657" },
+  "cmp-nvim-lsp": { "branch": "main", "commit": "cbc7b02bb99fae35cb42f514762b89b5126651ef" },
+  "cmp-path": { "branch": "main", "commit": "c642487086dbd9a93160e1679a1327be111cbc25" },
+  "cmp_luasnip": { "branch": "master", "commit": "98d9cb5c2c38532bd9bdb481067b20fea8f32e90" },
+  "conform.nvim": { "branch": "master", "commit": "619363c30309d29ffa631e67c8183f2a72caa373" },
+  "gitsigns.nvim": { "branch": "main", "commit": "31d6fb2d618bca1482b9f274751ead5f03461408" },
+  "goyo.vim": { "branch": "master", "commit": "9c72fdf2d202914318581f9f0dd09fd102f8504d" },
+  "gruvbox.nvim": { "branch": "main", "commit": "154eb5ff5b96d0641307113fa385eaf0d36d9796" },
+  "lazy.nvim": { "branch": "main", "commit": "306a05526ada86a7b30af95c5cc81ffba93fef97" },
+  "mason-lspconfig.nvim": { "branch": "main", "commit": "67029ccdac1ef8941e13b826417bc0ffac24cc86" },
+  "mason.nvim": { "branch": "main", "commit": "2a6940af80375532e5e9e7c1f2fc6319a1b7a69d" },
+  "nvim-cmp": { "branch": "main", "commit": "2ffe79f1f021def8dd1fcd81deb16f1bb0d989f3" },
+  "nvim-dap": { "branch": "master", "commit": "9e848e09a697ee95302a3ef2dd43fd6eb709e570" },
+  "nvim-dap-ui": { "branch": "master", "commit": "cc9dd33aade7f20bae414d0cba163bc60d4d4b43" },
+  "nvim-jdtls": { "branch": "master", "commit": "6e9d953f0b82bccdb834cfde0e893f3119c22592" },
+  "nvim-lspconfig": { "branch": "master", "commit": "43ed3797b266e1ee8d222e491379ad471c9d3146" },
+  "nvim-nio": { "branch": "master", "commit": "edcc181a875301dd21840189aa2f2f9ad69fc172" },
+  "nvim-treesitter": { "branch": "main", "commit": "c9f9ed6c1892f629ea399f4ee7905f2686fa13f2" },
+  "plenary.nvim": { "branch": "master", "commit": "74b06c6c75e4eeb3108ec01852001636d85a932b" },
+  "telescope-fzf-native.nvim": { "branch": "main", "commit": "b25b749b9db64d375d782094e2b9dce53ad53a40" },
+  "telescope.nvim": { "branch": "master", "commit": "427b576c16792edad01a92b89721d923c19ad60f" },
+  "toggleterm.nvim": { "branch": "main", "commit": "9a88eae817ef395952e08650b3283726786fb5fb" },
+  "vim-commentary": { "branch": "master", "commit": "64a654ef4a20db1727938338310209b6a63f60c9" },
+  "vim-fugitive": { "branch": "master", "commit": "3b753cf8c6a4dcde6edee8827d464ba9b8c4a6f0" },
+  "vim-surround": { "branch": "master", "commit": "3d188ed2113431cf8dac77be61b842acb64433d9" },
+  "vimtex": { "branch": "master", "commit": "a5568d902cc20a76bb8ef70743f0157ec2e79ded" }
+}
+</code></pre>
+</details>
+</div>
+
+    <h3 class="fn">4. Prompt for an LLM doing the replication</h3>
+    <p>Paste this along with the expanded contents above:</p>
+    <pre><code>Recreate a Neovim configuration exactly as specified below. For each
+"### path/to/file" heading, create that file (creating parent
+directories as needed) with exactly the content in the fenced block
+that follows it -- byte for byte, including comments. Do not
+paraphrase, reformat, "improve", or add anything not present in the
+source. Preserve whitespace and indentation exactly.
+
+After creating all files, install the external prerequisites listed
+in the prerequisites table (ripgrep, a C compiler, the tree-sitter
+CLI, a JDK, ctags, black, jq, glow, and a zsh config providing `ggu`
+and `ai`), then launch nvim once and let lazy.nvim/Mason finish their
+first-run installs before using it.
+
+[paste the file dump section here]</code></pre>
+  </section>
+
 
   <footer>
     Generated to document <code>~/.bin/dotfiles/config/nvim</code> as it stood after the initial setup + follow-up tweaks (colorscheme swapped to nordic, smarter <code>&lt;C-]&gt;</code>, fold defaults, toggleterm).
