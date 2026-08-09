@@ -1,7 +1,7 @@
 return {
   "akinsho/toggleterm.nvim",
   cmd = { "ToggleTerm", "TermExec" },
-  keys = { "<C-\\>", "<leader>ai" },
+  keys = { "<C-\\>", "<C-'>", "<leader>'" },
   opts = {
     open_mapping = [[<c-\>]],
     direction = "float",
@@ -40,8 +40,10 @@ return {
       direction = "float",
       hidden = true,
     })
-    vim.keymap.set("n", "<leader>ai", function()
-      ai_term:toggle()
-    end, { desc = "Toggle persistent ai (Claude) terminal" })
+    for _, lhs in ipairs({ "<C-'>", "<leader>'" }) do
+      vim.keymap.set({ "n", "t" }, lhs, function()
+        ai_term:toggle()
+      end, { desc = "Toggle persistent ai (Claude) terminal" })
+    end
   end,
 }
