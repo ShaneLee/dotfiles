@@ -1,8 +1,7 @@
 export ZSH=$HOME/.bin/.oh-my-zsh
 
 ZSH_THEME="shane"
-plugins=(web-search)
-plugins=(z)
+plugins=(z web-search fzf)
 
 #Allow multiple terminal sessions to all append to one zsh command history
 setopt APPEND_HISTORY
@@ -53,13 +52,13 @@ bindkey '^B' backward-word
 export GOPATH=$HOME/dev/Go
 export PATH=$PATH:$GOPATH/bin
 
-export PATH=/usr/local/bin:$PATH
+export PATH="$PATH:/usr/local/bin"
 export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export PATH="$HOME/.bin/dotfiles/bin:$PATH"
 export PATH="$PATH:$HOME/bin"
 export PATH="$PATH:$HOME/wbin"
 
-ZSH_COMPDUMP="~/.cache/zsh/zcompdump"
+ZSH_COMPDUMP="$HOME/.cache/zsh/zcompdump"
 
 export LESSSHISTFILE="-"
 
@@ -73,10 +72,6 @@ source $ZSH/oh-my-zsh.sh
 export LC_ALL=en_US.UTF-8 
 export LANG=en_US.UTF-8
 
-#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="/Users/Shane/.sdkman"
-[[ -s "/Users/Shane/.sdkman/bin/sdkman-init.sh" ]] && source "/Users/Shane/.sdkman/bin/sdkman-init.sh"
-
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
@@ -84,9 +79,6 @@ export NVM_DIR="$HOME/.nvm"
 # Initialise conda, but because this is slow
 # do it in a subshell and prevent it logging anything
 (conda_init &) > /dev/null 2>&1
-
-# Created by `pipx` on 2024-07-23 16:40:18
-export PATH="$PATH:/Users/shane/.local/bin"
 
 # bun completions
 [ -s "/Users/shane/.bun/_bun" ] && source "/Users/shane/.bun/_bun"
@@ -100,13 +92,12 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 [[ -f /Users/shane/.bin/dotfiles/config/.dart-cli-completion/zsh-config.zsh ]] && . /Users/shane/.bin/dotfiles/config/.dart-cli-completion/zsh-config.zsh || true
 ## [/Completion]
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
-export PATH="/usr/local/lib/docker:$PATH"
-export PATH="/usr/local/lib/docker:$PATH"
 export PATH="/usr/local/lib/docker:$PATH"
 export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 
 # opencode
 export PATH=/Users/shane/.opencode/bin:$PATH
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="/Users/Shane/.sdkman"
+[[ -s "/Users/Shane/.sdkman/bin/sdkman-init.sh" ]] && source "/Users/Shane/.sdkman/bin/sdkman-init.sh"

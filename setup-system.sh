@@ -79,6 +79,9 @@ install_oh_my_zsh() {
   # mv .oh-my-zsh .bin/
   ln -s ~/.bin/dotfiles/shane.zsh-theme ~/.bin/.oh-my-zsh/themes/shane.zsh-theme
 
+  local plugins_dir=~/.bin/.oh-my-zsh/custom/plugins
+  [[ -d "$plugins_dir/zsh-autosuggestions" ]] || git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions "$plugins_dir/zsh-autosuggestions"
+  [[ -d "$plugins_dir/zsh-syntax-highlighting" ]] || git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting "$plugins_dir/zsh-syntax-highlighting"
 }
 
 install_lts_node() {
