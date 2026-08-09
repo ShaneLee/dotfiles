@@ -384,6 +384,12 @@ function! s:RunPythonTestUnderCursor()
   exec '!pytest ' . shellescape(target)
 endfunction
 
+" True when the current buffer looks like a Cucumber JUnit runner class
+" (@RunWith(Cucumber.class) or a JUnit5 @Suite with @IncludeEngines("cucumber")).
+function! s:IsCucumberRunner()
+  return search('@RunWith(Cucumber\.class)\|IncludeEngines(.cucumber.)', 'nw') > 0
+endfunction
+
 " Prefer a gradle wrapper/gradle over maven when the project has one,
 " searching upward from the current file. Returns the '!...' shell command
 " to run for the given class (and optional method).
@@ -396,7 +402,13 @@ function! s:JavaTestCommand(class_name, method_name)
     let pattern = a:method_name !=# ''
       \ ? '*.' . a:class_name . '.' . a:method_name
       \ : '*.' . a:class_name
-    return '!' . gradle_bin . ' test --tests "' . pattern . '"'
+    let cmd = '!' . gradle_bin . ' test --tests "' . pattern . '"'
+    " Avoid instantiating a Cucumber JUnit runner (and running the whole
+    " feature suite as a side effect) when targeting an unrelated class.
+    if !s:IsCucumberRunner()
+      let cmd .= ' -PexcludeCucumber'
+    endif
+    return cmd
   endif
 
   if a:method_name !=# ''
